@@ -59,6 +59,7 @@
     <Compile Include="GrowableOverhaulMod.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="DataExtension.cs" />
+    <Compile Include="RoadAIDetour.cs" />
     <Compile Include="ZoneBlockDetour.cs" />
     <Compile Include="ZoneManagerDetour.cs" />
     <Compile Include="ZoneToolDetour.cs" />
