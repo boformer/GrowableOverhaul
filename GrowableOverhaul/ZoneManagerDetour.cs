@@ -41,6 +41,11 @@ namespace GrowableOverhaul
                 _this.m_blocks.m_buffer[(int)block].m_occupied2 = 0UL;
                 _this.m_blocks.m_buffer[(int)block].m_flags = ZoneBlock.FLAG_CREATED;
                 _this.m_blocks.m_buffer[(int)block].RowCount = rows;
+
+                // --- dynamic column count ---
+                // TODO should only affect new roads, not ones replaced or splitted by the game (see Network Skins source code)
+                ZoneBlockDetour.SetColumnCount(ref _this.m_blocks.m_buffer[(int)block], GrowableOverhaulMod.newBlockColumnCount);
+
                 _this.m_blocks.m_buffer[(int)block].m_buildIndex = buildIndex;
                 _this.m_blocks.m_buffer[(int)block].m_angle = angle;
                 _this.m_blocks.m_buffer[(int)block].m_position = position;
@@ -113,6 +118,7 @@ namespace GrowableOverhaul
 
             // width of the zone block
             int rowCount = zoneBlock.RowCount;
+            int columnCount = ZoneBlockDetour.GetColumnCount(ref zoneBlock); // modified
 
             // orientation of the zone block
             Vector3 columnDirection = new Vector3(Mathf.Cos(zoneBlock.m_angle), 0.0f, Mathf.Sin(zoneBlock.m_angle)) * 8f;
@@ -126,7 +132,7 @@ namespace GrowableOverhaul
             {
                 Vector3 rowMiddleLength = ((float)row - 3.5f) * rowDirection;
 
-                for (int column = 0; (long)column < ZoneBlockDetour.COLUMN_COUNT; ++column)
+                for (int column = 0; (long)column < columnCount; ++column)
                 {
                     // check if the current cell is valid (not shared, not occupied)
                     if (((long)zoneBlock.m_valid & ~(long)zoneBlock.m_shared & ~((long)zoneBlock.m_occupied1 | (long)zoneBlock.m_occupied2) & 1L << (row << 3 | column)) != 0L)

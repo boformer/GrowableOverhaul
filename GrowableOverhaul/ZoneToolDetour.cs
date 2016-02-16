@@ -41,7 +41,7 @@ namespace GrowableOverhaul
             return (bool)m_dezoning_field.GetValue(_this);
         }
 
-        [RedirectMethod(true)]
+        [RedirectMethod(false)]
         private static void Snap(ZoneTool _this, ref Vector3 point, ref Vector3 direction, ref ItemClass.Zone zone, ref bool occupied1, ref bool occupied2, ref ZoneBlock block)
         {
             direction = new Vector3(Mathf.Cos(block.m_angle), 0.0f, Mathf.Sin(block.m_angle));
@@ -62,7 +62,7 @@ namespace GrowableOverhaul
             occupied2 = block.IsOccupied2(num1 + 4, num2 + 4);
         }
 
-        [RedirectMethod(true)]
+        [RedirectMethod(false)]
         private static void CalculateFillBuffer(ZoneTool _this, Vector3 position, Vector3 direction, float angle, ushort blockIndex, ref ZoneBlock block, ItemClass.Zone requiredZone, bool occupied1, bool occupied2)
         {
             float f1 = Mathf.Abs(block.m_angle - angle) * 0.6366197f;
@@ -70,6 +70,7 @@ namespace GrowableOverhaul
             if ((double)num1 >= 0.00999999977648258 && (double)num1 <= 0.990000009536743)
                 return;
             int rowCount = block.RowCount;
+            int columnCount = ZoneBlockDetour.GetColumnCount(ref block); // modified
             Vector3 vector3_1 = new Vector3(Mathf.Cos(block.m_angle), 0.0f, Mathf.Sin(block.m_angle)) * 8f;
             Vector3 vector3_2 = new Vector3(vector3_1.z, 0.0f, -vector3_1.x);
 
@@ -79,7 +80,7 @@ namespace GrowableOverhaul
             for (int z = 0; z < rowCount; ++z)
             {
                 Vector3 vector3_3 = ((float)z - 3.5f) * vector3_2;
-                for (int x = 0; x < ZoneBlockDetour.COLUMN_COUNT; ++x) // modifed
+                for (int x = 0; x < columnCount; ++x) // modifed
                 {
                     if (((long)block.m_valid & 1L << (z << 3 | x)) != 0L && ZoneBlockDetour.GetZoneDeep(ref block, blockID, x, z) == requiredZone)
                     {
@@ -108,7 +109,7 @@ namespace GrowableOverhaul
             }
         }
 
-        [RedirectMethod(true)]
+        [RedirectMethod(false)]
         private static bool ApplyFillBuffer(ZoneTool _this, Vector3 position, Vector3 direction, float angle, ushort blockIndex, ref ZoneBlock block)
         {
             var m_zoning = IsZoningEnabled(_this); // custom
@@ -116,13 +117,15 @@ namespace GrowableOverhaul
             var blockID = ZoneBlockDetour.FindBlockId(ref block); // modified
 
             int rowCount = block.RowCount;
+            int columnCount = ZoneBlockDetour.GetColumnCount(ref block); // modified
+
             Vector3 vector3_1 = new Vector3(Mathf.Cos(block.m_angle), 0.0f, Mathf.Sin(block.m_angle)) * 8f;
             Vector3 vector3_2 = new Vector3(vector3_1.z, 0.0f, -vector3_1.x);
             bool flag1 = false;
             for (int z = 0; z < rowCount; ++z)
             {
                 Vector3 vector3_3 = ((float)z - 3.5f) * vector3_2;
-                for (int x = 0; x < ZoneBlockDetour.COLUMN_COUNT; ++x) // custom
+                for (int x = 0; x < columnCount; ++x) // custom
                 {
                     Vector3 vector3_4 = ((float)x - 3.5f) * vector3_1;
                     Vector3 vector3_5 = block.m_position + vector3_4 + vector3_3 - position;
@@ -163,10 +166,12 @@ namespace GrowableOverhaul
             return true;
         }
 
-        [RedirectMethod(true)]
+        [RedirectMethod(false)]
         private static bool ApplyZoning(ZoneTool _this, ushort blockIndex, ref ZoneBlock data, Quad2 quad2)
         {
             int rowCount = data.RowCount;
+            int columnCount = ZoneBlockDetour.GetColumnCount(ref data); // modified
+
             Vector2 vector2_1 = new Vector2(Mathf.Cos(data.m_angle), Mathf.Sin(data.m_angle)) * 8f;
             Vector2 vector2_2 = new Vector2(vector2_1.y, -vector2_1.x);
             Vector2 vector2_3 = VectorUtils.XZ(data.m_position);
@@ -187,7 +192,7 @@ namespace GrowableOverhaul
             for (int z = 0; z < rowCount; ++z)
             {
                 Vector2 vector2_4 = ((float)z - 3.5f) * vector2_2;
-                for (int x = 0; x < ZoneBlockDetour.COLUMN_COUNT; ++x) // custom
+                for (int x = 0; x < columnCount; ++x) // custom
                 {
                     Vector2 vector2_5 = ((float)x - 3.5f) * vector2_1;
                     Vector2 p = vector2_3 + vector2_5 + vector2_4;
@@ -210,13 +215,14 @@ namespace GrowableOverhaul
             return true;
         }
 
-        [RedirectMethod(true)]
+        [RedirectMethod(false)]
         private static void ApplyBrush(ZoneTool _this, ushort blockIndex, ref ZoneBlock data, Vector3 position, float brushRadius)
         {
             Vector3 vector3_1 = data.m_position - position;
             if ((double)Mathf.Abs(vector3_1.x) > 46.0 + (double)brushRadius || (double)Mathf.Abs(vector3_1.z) > 46.0 + (double)brushRadius)
                 return;
             int num = (int)((data.m_flags & 65280U) >> 8);
+            int columnCount = ZoneBlockDetour.GetColumnCount(ref data); // modified
             Vector3 vector3_2 = new Vector3(Mathf.Cos(data.m_angle), 0.0f, Mathf.Sin(data.m_angle)) * 8f;
             Vector3 vector3_3 = new Vector3(vector3_2.z, 0.0f, -vector3_2.x);
             bool flag = false;
@@ -228,7 +234,7 @@ namespace GrowableOverhaul
             for (int z = 0; z < num; ++z)
             {
                 Vector3 vector3_4 = ((float)z - 3.5f) * vector3_3;
-                for (int x = 0; x < ZoneBlockDetour.COLUMN_COUNT; ++x) // modified
+                for (int x = 0; x < columnCount; ++x) // modified
                 {
                     Vector3 vector3_5 = ((float)x - 3.5f) * vector3_2;
                     Vector3 vector3_6 = vector3_1 + vector3_5 + vector3_4;
@@ -253,7 +259,7 @@ namespace GrowableOverhaul
             UsedZone(_this, _this.m_zone);
         }
 
-        [RedirectReverse(true)]
+        [RedirectReverse(false)]
         private static void UsedZone(ZoneTool _this, ItemClass.Zone zone)
         {
             Debug.Log($"Dummy code: {zone}");

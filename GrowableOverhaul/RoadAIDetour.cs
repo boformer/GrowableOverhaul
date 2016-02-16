@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using ColossalFramework;
+﻿using ColossalFramework;
 using GrowableOverhaul.Redirection;
 using UnityEngine;
 
@@ -11,12 +7,12 @@ namespace GrowableOverhaul
     [TargetType(typeof(RoadAI))]
     public static class RoadAIDetour
     {
-        [RedirectMethod(false)]
+        [RedirectMethod(false)] // reason for detour: display correct zone area when using NetTool
         public static void GetEffectRadius(RoadAI _this, out float radius, out bool capped, out Color color)
         {
             if (_this.m_enableZoning)
             {
-                radius = Mathf.Max(8f, _this.m_info.m_halfWidth) + ZoneBlockDetour.COLUMN_COUNT * 8f; // modified
+                radius = Mathf.Max(8f, _this.m_info.m_halfWidth) + GrowableOverhaulMod.newBlockColumnCount * 8f; // modified
                 capped = true;
                 if (Singleton<InfoManager>.instance.CurrentMode != InfoManager.InfoMode.None)
                 {

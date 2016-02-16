@@ -49,6 +49,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="BuildingDetour.cs" />
+    <Compile Include="BuildingToolDetour.cs" />
     <Compile Include="DetourLoadingExtension.cs" />
     <Compile Include="Redirection\RedirectionHelper.cs" />
     <Compile Include="Redirection\RedirectionUtil.cs" />

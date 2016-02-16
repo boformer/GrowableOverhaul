@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using GrowableOverhaul.Redirection;
+﻿using GrowableOverhaul.Redirection;
 using UnityEngine;
 
 namespace GrowableOverhaul
@@ -19,13 +15,14 @@ namespace GrowableOverhaul
             Vector3 vector3_1 = new Vector3(Mathf.Cos(_this.m_angle), 0.0f, Mathf.Sin(_this.m_angle)) * 8f;
             Vector3 vector3_2 = new Vector3(vector3_1.z, 0.0f, -vector3_1.x);
             int rowCount = block.RowCount;
+            int columnCount = ZoneBlockDetour.GetColumnCount(ref block); // modified
             Vector3 vector3_3 = new Vector3(Mathf.Cos(block.m_angle), 0.0f, Mathf.Sin(block.m_angle)) * 8f;
             Vector3 vector3_4 = new Vector3(vector3_3.z, 0.0f, -vector3_3.x);
             Vector3 vector3_5 = block.m_position - _this.m_position + vector3_1 * (float)((double)width * 0.5 - 0.5) + vector3_2 * (float)((double)length * 0.5 - 0.5);
             for (int z = 0; z < rowCount; ++z)
             {
                 Vector3 vector3_6 = ((float)z - 3.5f) * vector3_4;
-                for (int x = 0; (long)x < ZoneBlockDetour.COLUMN_COUNT; ++x) // modified
+                for (int x = 0; (long)x < columnCount; ++x) // modified
                 {
                     if (((long)block.m_valid & ~(long)block.m_shared & 1L << (z << 3 | x)) != 0L)
                     {

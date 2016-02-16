@@ -8,9 +8,21 @@ namespace GrowableOverhaul
     [TargetType(typeof(ZoneBlock))]
     public static class ZoneBlockDetour
     {
-        // zone depth contant
-        public const uint COLUMN_COUNT = 8;
+        // mask for m_flags to store the zone block depth (shifted by 24 bits)
+        public const uint FLAG_COLUMNS = 251658240;// 0000 1111 0000 0000 0000 0000 0000 0000
 
+        public static int GetColumnCount(ref ZoneBlock block)
+        {
+            var count = (int) ((block.m_flags & FLAG_COLUMNS) >> 24);
+            return count > 0 ? count : 4; // return 4 (vanilla depth) for blocks with unset column count
+        }
+
+        public static void SetColumnCount(ref ZoneBlock block, int value)
+        {
+            if (value == 4) value = 0;
+
+            block.m_flags = block.m_flags & ~FLAG_COLUMNS | (uint)Mathf.Clamp(value, 1, 8) << 24;
+        }
 
         // helper method
         public static ushort FindBlockId(ref ZoneBlock data)
@@ -51,6 +63,7 @@ namespace GrowableOverhaul
         {
             // width of the zone block
             int rowCount = _this.RowCount;
+            int columnCount = ZoneBlockDetour.GetColumnCount(ref _this); // modified
 
             // directions of the rows and columns based on zone block angle, multiplied by 8 (cell size)
             Vector2 columnDirection = new Vector2(Mathf.Cos(_this.m_angle), Mathf.Sin(_this.m_angle)) * 8f;
@@ -75,7 +88,7 @@ namespace GrowableOverhaul
                 Vector2 rowNearPreviousLength = ((float)row - 3.9f) * rowDirection;
                 Vector2 rowNearNextLength = ((float)row - 3.1f) * rowDirection;
 
-                for (int column = 0; column < COLUMN_COUNT; ++column)
+                for (int column = 0; column < columnCount; ++column)
                 {
                     // calculate 2 relative column positions: 
                     // * one 0.1m from previous column
@@ -251,6 +264,7 @@ namespace GrowableOverhaul
 
             // width of the zone block
             int rowCount = _this.RowCount;
+            int columnCount = ZoneBlockDetour.GetColumnCount(ref _this); // modified
 
             // directions of the rows and columns based on zone block angle, multiplied by 8 (cell size)
             Vector2 columnDirection = new Vector2(Mathf.Cos(_this.m_angle), Mathf.Sin(_this.m_angle)) * 8f;
@@ -264,8 +278,8 @@ namespace GrowableOverhaul
             Quad2 zoneBlockQuad = new Quad2()
             {
                 a = positionXZ - 4f * columnDirection - 4f * rowDirection,
-                b = positionXZ + (COLUMN_COUNT - 4f) * columnDirection - 4f * rowDirection,
-                c = positionXZ + (COLUMN_COUNT - 4f) * columnDirection + (float)(rowCount - 4) * rowDirection,
+                b = positionXZ + (columnCount - 4f) * columnDirection - 4f * rowDirection,
+                c = positionXZ + (columnCount - 4f) * columnDirection + (float)(rowCount - 4) * rowDirection,
                 d = positionXZ - 4f * columnDirection + (float)(rowCount - 4) * rowDirection
             };
 
@@ -302,7 +316,7 @@ namespace GrowableOverhaul
                 // that's where the road is
                 float height = Singleton<TerrainManager>.instance.SampleRawHeightSmooth(VectorUtils.X_Y(positionXZ + rowMiddleLength - 5f * columnDirection));
 
-                for (int column = 0; column < COLUMN_COUNT; ++column)
+                for (int column = 0; column < columnCount; ++column)
                 {
                     // calculate 2 relative column positions: 
                     // * one 0.1m from previous column
@@ -410,7 +424,9 @@ namespace GrowableOverhaul
 
             // width of block and other block
             int rowCount = _this.RowCount;
+            int columnCount = ZoneBlockDetour.GetColumnCount(ref _this); // modified
             int otherRowCount = other.RowCount;
+            int otherColumnCount = ZoneBlockDetour.GetColumnCount(ref other); // modified
 
             // directions of the rows and columns of the block, multiplied by 8 (cell size)
             Vector2 columnDirection = new Vector2(Mathf.Cos(_this.m_angle), Mathf.Sin(_this.m_angle)) * 8f;
@@ -427,8 +443,8 @@ namespace GrowableOverhaul
             Quad2 otherZoneBlockQuad = new Quad2
             {
                 a = otherPositionXZ - 4f * otherColumnDirection - 4f * otherRowDirection,
-                b = otherPositionXZ + (COLUMN_COUNT - 4f) * otherColumnDirection - 4f * otherRowDirection,
-                c = otherPositionXZ + (COLUMN_COUNT - 4f) * otherColumnDirection + (float)(otherRowCount - 4) * otherRowDirection,
+                b = otherPositionXZ + (otherColumnCount - 4f) * otherColumnDirection - 4f * otherRowDirection,
+                c = otherPositionXZ + (otherColumnCount - 4f) * otherColumnDirection + (float)(otherRowCount - 4) * otherRowDirection,
                 d = otherPositionXZ - 4f * otherColumnDirection + (float)(otherRowCount - 4) * otherRowDirection
             };
 
@@ -448,8 +464,8 @@ namespace GrowableOverhaul
             Quad2 zoneBlockQuad = new Quad2
             {
                 a = positionXZ - 4f * columnDirection - 4f * rowDirection,
-                b = positionXZ + (COLUMN_COUNT - 4f) * columnDirection - 4f * rowDirection,
-                c = positionXZ + (COLUMN_COUNT - 4f) * columnDirection + (float)(rowCount - 4) * rowDirection,
+                b = positionXZ + (columnCount - 4f) * columnDirection - 4f * rowDirection,
+                c = positionXZ + (columnCount - 4f) * columnDirection + (float)(rowCount - 4) * rowDirection,
                 d = positionXZ - 4f * columnDirection + (float)(rowCount - 4) * rowDirection
             };
 
@@ -466,14 +482,14 @@ namespace GrowableOverhaul
 
                 // set the quad to the row (4 cells)
                 zoneBlockQuad.a = positionXZ - 4f * columnDirection + rowNearPreviousLength;
-                zoneBlockQuad.b = positionXZ + (COLUMN_COUNT - 4f) * columnDirection + rowNearPreviousLength;
-                zoneBlockQuad.c = positionXZ + (COLUMN_COUNT - 4f) * columnDirection + rowNearNextLength;
+                zoneBlockQuad.b = positionXZ + (columnCount - 4f) * columnDirection + rowNearPreviousLength;
+                zoneBlockQuad.c = positionXZ + (columnCount - 4f) * columnDirection + rowNearNextLength;
                 zoneBlockQuad.d = positionXZ - 4f * columnDirection + rowNearNextLength;
 
                 // Intersect the row quad with the other zone block quad
                 if (zoneBlockQuad.Intersect(otherZoneBlockQuad))
                 {
-                    for (int column = 0; column < COLUMN_COUNT && (valid & 1uL << (row << 3 | column)) != 0uL; ++column)
+                    for (int column = 0; column < columnCount && (valid & 1uL << (row << 3 | column)) != 0uL; ++column)
                     {
                         // calculate 2 relative column positions: 
                         // * one 0.01m from previous column
@@ -508,7 +524,7 @@ namespace GrowableOverhaul
                                 Vector2 otherRowNearPreviousLength = ((float)otherRow - 3.99f) * otherRowDirection;
                                 Vector2 otherRowNearNextLength = ((float)otherRow - 3.01f) * otherRowDirection;
 
-                                for (int otherColumn = 0; otherColumn < COLUMN_COUNT && cellIsValid; ++otherColumn)
+                                for (int otherColumn = 0; otherColumn < otherColumnCount && cellIsValid; ++otherColumn)
                                 {
                                     // checks if the cell is marked as valid in the valid mask of the other block, and that it is not contained in the shared mask
                                     if ((other.m_valid & ~other.m_shared & 1uL << (otherRow << 3 | otherColumn)) != 0uL)
@@ -614,6 +630,7 @@ namespace GrowableOverhaul
 
             // width of the zone block
             int rowCount = _this.RowCount;
+            int columnCount = ZoneBlockDetour.GetColumnCount(ref _this); // modified
 
             // directions of the rows and columns based on zone block angle, multiplied by 8 (cell size)
             Vector2 columnDirection = new Vector2(Mathf.Cos(_this.m_angle), Mathf.Sin(_this.m_angle)) * 8f;
@@ -623,8 +640,8 @@ namespace GrowableOverhaul
 
             // bounds of the zone block
             Vector2 a = positionXZ - 4f * columnDirection - 4f * rowDirection;
-            Vector2 b = positionXZ + (COLUMN_COUNT - 4f) * columnDirection - 4f * rowDirection;
-            Vector2 c = positionXZ + (COLUMN_COUNT - 4f) * columnDirection + (float)(rowCount - 4) * rowDirection;
+            Vector2 b = positionXZ + (columnCount - 4f) * columnDirection - 4f * rowDirection;
+            Vector2 c = positionXZ + (columnCount - 4f) * columnDirection + (float)(rowCount - 4) * rowDirection;
             Vector2 d = positionXZ - 4f * columnDirection + (float)(rowCount - 4) * rowDirection;
             float minX = Mathf.Min(Mathf.Min(a.x, b.x), Mathf.Min(c.x, d.x));
             float minZ = Mathf.Min(Mathf.Min(a.y, b.y), Mathf.Min(c.y, d.y));
@@ -717,6 +734,7 @@ namespace GrowableOverhaul
         {
             // width of the zone block
             int rowCount = _this.RowCount;
+            int columnCount = ZoneBlockDetour.GetColumnCount(ref _this); // modified
 
             // directions of the rows and columns based on zone block angle, multiplied by 8 (cell size)
             Vector2 columnDirection = new Vector2(Mathf.Cos(_this.m_angle), Mathf.Sin(_this.m_angle)) * 8f;
@@ -767,8 +785,8 @@ namespace GrowableOverhaul
             if (!new Quad2()
             {
                 a = (positionXZ - 4f * columnDirection - 4f * rowDirection),
-                b = (positionXZ + (COLUMN_COUNT - 4f) * columnDirection - 4f * rowDirection),
-                c = (positionXZ + (COLUMN_COUNT - 4f) * columnDirection + (float)(rowCount - 4) * rowDirection),
+                b = (positionXZ + (columnCount - 4f) * columnDirection - 4f * rowDirection),
+                c = (positionXZ + (columnCount - 4f) * columnDirection + (float)(rowCount - 4) * rowDirection),
                 d = (positionXZ - 4f * columnDirection + (float)(rowCount - 4) * rowDirection)
             }.Intersect(buildingQuad))
             {
@@ -855,6 +873,7 @@ namespace GrowableOverhaul
 
             // width of the zone block
             int rowCount = _this.RowCount;
+            int columnCount = ZoneBlockDetour.GetColumnCount(ref _this); // modified
 
             Vector2 columnDirection = new Vector2(Mathf.Cos(_this.m_angle), Mathf.Sin(_this.m_angle)) * 8f;
             Vector2 rowDirection = new Vector2(columnDirection.y, -columnDirection.x);
@@ -862,8 +881,8 @@ namespace GrowableOverhaul
 
             // bounds of the zone block
             Vector2 a = positionXZ - 4f * columnDirection - 4f * rowDirection;
-            Vector2 b = positionXZ + (COLUMN_COUNT - 4f) * columnDirection - 4f * rowDirection;
-            Vector2 c = positionXZ + (COLUMN_COUNT - 4f) * columnDirection + (float)(rowCount - 4) * rowDirection;
+            Vector2 b = positionXZ + (columnCount - 4f) * columnDirection - 4f * rowDirection;
+            Vector2 c = positionXZ + (columnCount - 4f) * columnDirection + (float)(rowCount - 4) * rowDirection;
             Vector2 d = positionXZ - 4f * columnDirection + (float)(rowCount - 4) * rowDirection;
             float minX = Mathf.Min(Mathf.Min(a.x, b.x), Mathf.Min(c.x, d.x));
             float minZ = Mathf.Min(Mathf.Min(a.y, b.y), Mathf.Min(c.y, d.y));
@@ -951,6 +970,7 @@ namespace GrowableOverhaul
 
             // width of the zone
             int rowCount = _this.RowCount;
+            int columnCount = ZoneBlockDetour.GetColumnCount(ref _this); // modified
 
             // directions of the rows and columns based on zone block angle, multiplied by 8 (cell size)
             Vector3 columnDirection = new Vector3(Mathf.Cos(_this.m_angle), 0.0f, Mathf.Sin(_this.m_angle)) * 8f;
@@ -958,8 +978,8 @@ namespace GrowableOverhaul
 
             // bounds of the zone block
             Vector3 a = _this.m_position - 4f * columnDirection - 4f * rowDirection;
-            Vector3 b = _this.m_position + (COLUMN_COUNT - 4f) * columnDirection - 4f * rowDirection;
-            Vector3 c = _this.m_position + (COLUMN_COUNT - 4f) * columnDirection + (float)(rowCount - 4) * rowDirection;
+            Vector3 b = _this.m_position + (columnCount - 4f) * columnDirection - 4f * rowDirection;
+            Vector3 c = _this.m_position + (columnCount - 4f) * columnDirection + (float)(rowCount - 4) * rowDirection;
             Vector3 d = _this.m_position - 4f * columnDirection + (float)(rowCount - 4) * rowDirection;
             float minX = Mathf.Min(Mathf.Min(a.x, b.x), Mathf.Min(c.x, d.x));
             float minZ = Mathf.Min(Mathf.Min(a.z, b.z), Mathf.Min(c.z, d.z));
@@ -983,6 +1003,7 @@ namespace GrowableOverhaul
         {
             // width of the zone
             int rowCount = _this.RowCount;
+            int columnCount = ZoneBlockDetour.GetColumnCount(ref _this); // modified
 
             // directions of the rows and columns based on zone block angle, multiplied by 8 (cell size)
             Vector3 columnDirection = new Vector3(Mathf.Cos(_this.m_angle), 0.0f, Mathf.Sin(_this.m_angle)) * 8f;
@@ -992,8 +1013,8 @@ namespace GrowableOverhaul
 
             // bounds of the zone block
             Vector3 a = _this.m_position - 4f * columnDirection - 4f * rowDirection;
-            Vector3 b = _this.m_position + (COLUMN_COUNT - 4f) * columnDirection - 4f * rowDirection;
-            Vector3 c = _this.m_position + (COLUMN_COUNT - 4f) * columnDirection + (float)(rowCount - 4) * rowDirection;
+            Vector3 b = _this.m_position + (columnCount - 4f) * columnDirection - 4f * rowDirection;
+            Vector3 c = _this.m_position + (columnCount - 4f) * columnDirection + (float)(rowCount - 4) * rowDirection;
             Vector3 d = _this.m_position - 4f * columnDirection + (float)(rowCount - 4) * rowDirection;
 
             // note the minDistance tolerance
@@ -1009,7 +1030,7 @@ namespace GrowableOverhaul
                 {
                     // Calculate distance between row (center) and point
                     Vector3 distancePointToRow = _this.m_position - point + ((float)row - 3.5f) * rowDirection;
-                    for (int column = 0; column < COLUMN_COUNT; ++column)
+                    for (int column = 0; column < columnCount; ++column)
                     {
                         if ((_this.m_valid & 1uL << (row << 3 | column)) != 0uL)
                         {
@@ -1134,6 +1155,8 @@ namespace GrowableOverhaul
 
         public static ItemClass.Zone GetZoneDeep(ref ZoneBlock _this, ushort blockID, int x, int z)
         {
+            if(x >= ZoneBlockDetour.GetColumnCount(ref _this)) return ItemClass.Zone.Distant;
+
             int num = z << 3 | (x & 1) << 2;
 
             if (x < 2) return (ItemClass.Zone)(_this.m_zone1 >> num & 15L);
@@ -1163,6 +1186,7 @@ namespace GrowableOverhaul
 
             // width of the zone block
             int rowCount = _this.RowCount;
+            int columnCount = ZoneBlockDetour.GetColumnCount(ref _this); // modified
 
             Vector2 columnDirection = new Vector2(Mathf.Cos(_this.m_angle), Mathf.Sin(_this.m_angle)) * 8f;
             Vector2 rowDirection = new Vector2(columnDirection.y, -columnDirection.x);
@@ -1204,7 +1228,7 @@ namespace GrowableOverhaul
                 for (; row + 1 < rowCount; ++row) // continue cycling through rows
                 {
                     int column;
-                    for (column = 0; column < COLUMN_COUNT; ++column)
+                    for (column = 0; column < columnCount; ++column)
                     {
                         ulong bitOfOuterRow = 1UL << (row2 << 3 | column);
                         ulong bitOfInnerRow = 1UL << (row + 1 << 3 | column);
@@ -1217,13 +1241,13 @@ namespace GrowableOverhaul
                             break;
                         }
                     }
-                    if (column < COLUMN_COUNT) break; // no idea what this does
+                    if (column < columnCount) break; // no idea what this does
                 }
 
                 // calculate relative position between current row and next row
                 Vector2 rowNextLength = ((float)row - 3f) * rowDirection;
 
-                for (int column = 0; column < COLUMN_COUNT; ++column)
+                for (int column = 0; column < columnCount; ++column)
                 {
                     ulong bitOfOuterColumn = 1UL << (row2 << 3 | column);
 
@@ -1284,6 +1308,7 @@ namespace GrowableOverhaul
 
             // width of other block
             int otherRowCount = other.RowCount;
+            int otherColumnCount = ZoneBlockDetour.GetColumnCount(ref other); // modified
 
             Vector2 otherColumnDirection = new Vector2(Mathf.Cos(other.m_angle), Mathf.Sin(other.m_angle)) * 8f;
             Vector2 otherRowDirection = new Vector2(otherColumnDirection.y, -otherColumnDirection.x);
@@ -1296,8 +1321,8 @@ namespace GrowableOverhaul
             if (!quad.Intersect(new Quad2()
             {
                 a = otherPositionXZ - 4f * otherColumnDirection - 4f * otherRowDirection,
-                b = otherPositionXZ + (COLUMN_COUNT - 4f) * otherColumnDirection - 4f * otherRowDirection,
-                c = otherPositionXZ + (COLUMN_COUNT - 4f) * otherColumnDirection + (float)(otherRowCount - 4) * otherRowDirection,
+                b = otherPositionXZ + (otherColumnCount - 4f) * otherColumnDirection - 4f * otherRowDirection,
+                c = otherPositionXZ + (otherColumnCount - 4f) * otherColumnDirection + (float)(otherRowCount - 4) * otherRowDirection,
                 d = otherPositionXZ - 4f * otherColumnDirection + (float)(otherRowCount - 4) * otherRowDirection
             }))
             {
@@ -1308,7 +1333,7 @@ namespace GrowableOverhaul
             for (int row = 0; row < otherRowCount; ++row)
             {
                 Vector2 rowMiddleLength = ((float)row - 3.5f) * otherRowDirection;
-                for (int column = 0; column < COLUMN_COUNT; ++column)
+                for (int column = 0; column < otherColumnCount; ++column)
                 {
                     // check if the cell is unoccupied and zoned correctly
                     if ((otherValidFreeCellMask & 1UL << (row << 3 | column)) != 0UL && GetZoneDeep(ref other, otherBlockID, column, row) == zone)
