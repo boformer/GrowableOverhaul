@@ -7,9 +7,12 @@ namespace GrowableOverhaul.Redirection
 {
     public static class RedirectionUtil
     {
-        public static Dictionary<MethodInfo, RedirectCallsState> RedirectType(Type type, bool onCreated = false)
+        private const BindingFlags MethodFlags = BindingFlags.Public | BindingFlags.Static | BindingFlags.Instance | BindingFlags.NonPublic;
+        private const BindingFlags RedirectorFieldFlags = BindingFlags.Public | BindingFlags.Static | BindingFlags.NonPublic;
+
+        public static Dictionary<MethodInfo, Redirector> RedirectType(Type type, bool onCreated = false)
         {
-            var redirects = new Dictionary<MethodInfo, RedirectCallsState>();
+            var redirects = new Dictionary<MethodInfo, Redirector>();
 
             var customAttributes = type.GetCustomAttributes(typeof(TargetTypeAttribute), false);
             if (customAttributes.Length != 1)
@@ -22,11 +25,11 @@ namespace GrowableOverhaul.Redirection
             return redirects;
         }
 
-        private static void RedirectMethods(Type type, Type targetType, Dictionary<MethodInfo, RedirectCallsState> redirects, bool onCreated)
+        private static void RedirectMethods(Type type, Type targetType, Dictionary<MethodInfo, Redirector> redirects, bool onCreated)
         {
             foreach (
                 var method in
-                    type.GetMethods(BindingFlags.Public | BindingFlags.Static | BindingFlags.Instance | BindingFlags.NonPublic)
+                    type.GetMethods(MethodFlags)
                         .Where(method =>
                         {
                             var redirectAttributes = method.GetCustomAttributes(typeof(RedirectMethodAttribute), false);
@@ -38,15 +41,22 @@ namespace GrowableOverhaul.Redirection
                         }))
             {
                 UnityEngine.Debug.Log($"Redirecting {targetType.Name}#{method.Name}...");
-                RedirectMethod(targetType, method, redirects);
+                var redirector = RedirectMethod(targetType, method, redirects);
+
+                var redirectorField = type.GetField($"{method.Name}Redirector", RedirectorFieldFlags);
+                if (redirectorField != null && redirectorField.FieldType == typeof (Redirector))
+                {
+                    UnityEngine.Debug.Log("Redirector field found!");
+                    redirectorField.SetValue(null, redirector);
+                }
             }
         }
 
-        private static void RedirectReverse(Type type, Type targetType, Dictionary<MethodInfo, RedirectCallsState> redirects, bool onCreated)
+        private static void RedirectReverse(Type type, Type targetType, Dictionary<MethodInfo, Redirector> redirects, bool onCreated)
         {
             foreach (
                 var method in
-                    type.GetMethods(BindingFlags.Public | BindingFlags.Static | BindingFlags.Instance | BindingFlags.NonPublic)
+                    type.GetMethods(MethodFlags)
                         .Where(method =>
                         {
                             var redirectAttributes = method.GetCustomAttributes(typeof(RedirectReverseAttribute), false);
@@ -62,14 +72,16 @@ namespace GrowableOverhaul.Redirection
             }
         }
 
-        private static void RedirectMethod(Type targetType, MethodInfo method, Dictionary<MethodInfo, RedirectCallsState> redirects, bool reverse = false)
+        private static Redirector RedirectMethod(Type targetType, MethodInfo method, Dictionary<MethodInfo, Redirector> redirects, bool reverse = false)
         {
             var tuple = RedirectMethod(targetType, method, reverse);
             redirects.Add(tuple.First, tuple.Second);
+
+            return tuple.Second;
         }
 
 
-        private static Tuple<MethodInfo, RedirectCallsState> RedirectMethod(Type targetType, MethodInfo detour, bool reverse)
+        private static Tuple<MethodInfo, Redirector> RedirectMethod(Type targetType, MethodInfo detour, bool reverse)
         {
             var parameters = detour.GetParameters();
             Type[] types;
@@ -82,12 +94,18 @@ namespace GrowableOverhaul.Redirection
             else {
                 types = parameters.Select(p => p.ParameterType).ToArray();
             }
-            var originalMethod = targetType.GetMethod(detour.Name,
-                BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static, null, types,
-                null);
-            var redirectCallsState =
-                reverse ? RedirectionHelper.RedirectCalls(detour, originalMethod) : RedirectionHelper.RedirectCalls(originalMethod, detour);
-            return Tuple.New(originalMethod, redirectCallsState);
+
+            MethodInfo originalMethod = originalMethod = targetType.GetMethod(detour.Name, MethodFlags, null, types, null);
+            if (originalMethod == null && detour.Name.EndsWith("Alt"))
+            {
+                originalMethod = targetType.GetMethod(detour.Name.Substring(0, detour.Name.Length - 3), MethodFlags, null, types, null);
+            }
+
+            var redirector = reverse ? new Redirector(detour, originalMethod) : new Redirector(originalMethod, detour);
+
+            redirector.Apply();
+
+            return Tuple.New(originalMethod, redirector);
         }
     }
 }

@@ -9,8 +9,8 @@ namespace GrowableOverhaul
 {
     public class DetourLoadingExtension : ILoadingExtension
     {
-        private readonly Dictionary<MethodInfo, RedirectCallsState> redirectsOnLoaded = new Dictionary<MethodInfo, RedirectCallsState>();
-        private readonly Dictionary<MethodInfo, RedirectCallsState> redirectsOnCreated = new Dictionary<MethodInfo, RedirectCallsState>();
+        private readonly Dictionary<MethodInfo, Redirector> redirectsOnLoaded = new Dictionary<MethodInfo, Redirector>();
+        private readonly Dictionary<MethodInfo, Redirector> redirectsOnCreated = new Dictionary<MethodInfo, Redirector>();
 
         private bool created;
         private bool loaded;
@@ -82,7 +82,7 @@ namespace GrowableOverhaul
             {
                 try
                 {
-                    RedirectionHelper.RevertRedirect(kvp.Key, kvp.Value);
+                    kvp.Value.Revert();
                 }
                 catch (Exception e)
                 {
