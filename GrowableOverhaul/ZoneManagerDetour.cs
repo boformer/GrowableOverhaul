@@ -7,6 +7,47 @@ namespace GrowableOverhaul
     [TargetType(typeof(ZoneManager))]
     public static class ZoneManagerDetour
     {
+        // This list must be in sync with ZoneManager#m_cachedBlocks
+        public static FastList<ushort> cachedBlockIDs = new FastList<ushort>();
+
+        public static Redirector CreateBlockRedirector = null;
+        public static Redirector ReleaseBlockRedirector = null;
+        public static Redirector SimulationStepImplRedirector = null;
+
+        
+        [RedirectMethod(true)] // Detour reason: Keep cachedBlockIDs in sync
+        private static void SimulationStepImpl(ZoneManager _this, int subStep)
+        {
+            bool blocksUpdated = _this.m_blocksUpdated;
+
+            // Call original method
+            SimulationStepImplRedirector.Revert();
+            SimulationStepImplAlt(_this, subStep);
+            SimulationStepImplRedirector.Apply();
+
+            if(blocksUpdated) cachedBlockIDs.Clear();
+        }
+
+        [RedirectReverse(true)]
+        private static void SimulationStepImplAlt(ZoneManager _this, int subStep)
+        {
+            Debug.Log($"SimulationStepImpl {subStep}");
+        }
+
+        [RedirectMethod(true)] // Detour reason: Keep cachedBlockIDs in sync
+        public static void ReleaseBlock(ZoneManager _this, ushort block)
+        {
+            if (_this.m_blocks.m_buffer[block].m_flags != 0u)
+            {
+                cachedBlockIDs.Add(block);
+            }
+
+            // Call original method
+            ReleaseBlockRedirector.Revert();
+            _this.ReleaseBlock(block);
+            ReleaseBlockRedirector.Apply();
+        }
+
         /// <summary>
         /// Creates a new zone block. Called by RoadAI#CreateZoneBlocks
         /// </summary>
@@ -18,62 +59,36 @@ namespace GrowableOverhaul
         /// <param name="rows"></param>
         /// <param name="buildIndex"></param>
         /// <returns></returns>
-        [RedirectMethod(true)]
+        [RedirectMethod(true)] // Detour Reason: Deeper zones data storage, custom depth
         public static bool CreateBlock(ZoneManager _this, out ushort block, ref Randomizer randomizer, Vector3 position, float angle, int rows, uint buildIndex)
         {
-            ushort num;
-            if (_this.m_blocks.CreateItem(out num, ref randomizer))
+            bool result;
+            var columns = NetManagerDetour.newBlockColumnCount;
+
+            if (columns == 0) // create no blocks if desired zone depth is 0
             {
-                block = num;
-
-                if (rows >= 8) rows = 8; // limit row count to 8
-
-                _this.m_blocks.m_buffer[(int)block].m_valid = 0UL;
-                _this.m_blocks.m_buffer[(int)block].m_shared = 0UL;
-                _this.m_blocks.m_buffer[(int)block].m_zone1 = 0UL;
-                _this.m_blocks.m_buffer[(int)block].m_zone2 = 0UL;
-
-                // --- support for larger zones ---
-                if (DataExtension.zones3 != null) DataExtension.zones3[block] = 0UL;
-                if (DataExtension.zones4 != null) DataExtension.zones4[block] = 0UL;
-
-                _this.m_blocks.m_buffer[(int)block].m_occupied1 = 0UL;
-                _this.m_blocks.m_buffer[(int)block].m_occupied2 = 0UL;
-                _this.m_blocks.m_buffer[(int)block].m_flags = ZoneBlock.FLAG_CREATED;
-                _this.m_blocks.m_buffer[(int)block].RowCount = rows;
-
-                // --- dynamic column count ---
-                // TODO should only affect new roads, not ones replaced or splitted by the game (see Network Skins source code)
-                ZoneBlockDetour.SetColumnCount(ref _this.m_blocks.m_buffer[(int)block], GrowableOverhaulMod.newBlockColumnCount);
-
-                _this.m_blocks.m_buffer[(int)block].m_buildIndex = buildIndex;
-                _this.m_blocks.m_buffer[(int)block].m_angle = angle;
-                _this.m_blocks.m_buffer[(int)block].m_position = position;
-
-                // put block into zone block grid
-                InitializeBlock(_this, block, ref _this.m_blocks.m_buffer[(int)block]);
-
-                // put block into m_updatedBlocks array
-                _this.UpdateBlock(block);
-
-                // update block count
-                _this.m_blockCount = (int)_this.m_blocks.ItemCount() - 1;
-                return true;
+                block = 0;
+                result = false;
             }
-            block = (ushort)0;
-            return false;
-        }
+            else
+            {
+                // Call original method
+                CreateBlockRedirector.Revert();
+                result = _this.CreateBlock(out block, ref randomizer, position, angle, rows, buildIndex);
+                CreateBlockRedirector.Apply();
 
-        /// <summary>
-        /// Adds a block to the zone block grid.
-        /// </summary>
-        /// <param name="_this"></param>
-        /// <param name="block"></param>
-        /// <param name="data"></param>
-        [RedirectReverse(true)]
-        private static void InitializeBlock(ZoneManager _this, ushort block, ref ZoneBlock data)
-        {
-            Debug.Log($"{block}, {data}");
+                if (result)
+                {
+                    // --- support for larger zones ---
+                    if (DataExtension.zones3 != null) DataExtension.zones3[block] = 0UL;
+                    if (DataExtension.zones4 != null) DataExtension.zones4[block] = 0UL;
+
+                    // --- dynamic column count ---
+                    // TODO should only affect new roads, not ones replaced or splitted by the game (see Network Skins source code)
+                    ZoneBlockDetour.SetColumnCount(ref _this.m_blocks.m_buffer[(int) block], columns);
+                }
+            }
+            return result;
         }
 
         /// <summary>

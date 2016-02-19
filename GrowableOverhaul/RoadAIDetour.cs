@@ -12,7 +12,7 @@ namespace GrowableOverhaul
         {
             if (_this.m_enableZoning)
             {
-                radius = Mathf.Max(8f, _this.m_info.m_halfWidth) + GrowableOverhaulMod.newBlockColumnCount * 8f; // modified
+                radius = Mathf.Max(8f, _this.m_info.m_halfWidth) + InputThreadingExtension.userSelectedColumnCount * 8f; // modified
                 capped = true;
                 if (Singleton<InfoManager>.instance.CurrentMode != InfoManager.InfoMode.None)
                 {

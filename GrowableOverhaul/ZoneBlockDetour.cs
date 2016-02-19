@@ -19,8 +19,6 @@ namespace GrowableOverhaul
 
         public static void SetColumnCount(ref ZoneBlock block, int value)
         {
-            if (value == 4) value = 0;
-
             block.m_flags = block.m_flags & ~FLAG_COLUMNS | (uint)Mathf.Clamp(value, 1, 8) << 24;
         }
 
@@ -659,8 +657,8 @@ namespace GrowableOverhaul
             // check if cached zone blocks are intersecting (updates valid and shared masks)
             for (int i = 0; i < zoneManager.m_cachedBlocks.m_size; ++i)
             {
-                // cachedBlocks are usually deleted and CalculateImplementation2 won't do anything with them, so just pass 0 as otherBlockID
-                CalculateImplementation2(ref _this, 0 , blockID, ref zoneManager.m_cachedBlocks.m_buffer[i], ref valid, ref shared, minX, minZ, maxX, maxZ);
+                ushort otherBlockID = ZoneManagerDetour.cachedBlockIDs[i]; // custom
+                CalculateImplementation2(ref _this, otherBlockID, blockID, ref zoneManager.m_cachedBlocks.m_buffer[i], ref valid, ref shared, minX, minZ, maxX, maxZ);
             }
 
             // calculate which zone block grid cells are touched by this zone block
