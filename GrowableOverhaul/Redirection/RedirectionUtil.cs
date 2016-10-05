@@ -105,7 +105,7 @@ namespace GrowableOverhaul.Redirection
 
             redirector.Apply();
 
-            return Tuple.New(originalMethod, redirector);
+            return Tuple.New(reverse ? detour : originalMethod, redirector);
         }
     }
 }

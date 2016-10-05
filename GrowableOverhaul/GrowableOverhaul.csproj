@@ -53,6 +53,7 @@
     <Compile Include="InputThreadingExtension.cs" />
     <Compile Include="DetourLoadingExtension.cs" />
     <Compile Include="NetManagerDetour.cs" />
+    <Compile Include="PrivateBuildingAIDetour.cs" />
     <Compile Include="Redirection\RedirectionHelper.cs" />
     <Compile Include="Redirection\RedirectionUtil.cs" />
     <Compile Include="Redirection\RedirectMethodAttribute.cs" />
