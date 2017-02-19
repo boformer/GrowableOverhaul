@@ -1,13 +1,13 @@
 ﻿using ColossalFramework;
-using GrowableOverhaul.Redirection;
+using GrowableOverhaul.Redirection.Attributes;
 using UnityEngine;
 
-namespace GrowableOverhaul
+namespace GrowableOverhaul.Detours
 {
     [TargetType(typeof(BuildingTool))]
-    public static class BuildingToolDetour
+    public class BuildingToolDetour
     {
-        [RedirectMethod(false)]
+        [RedirectMethod]
         private static void FindClosestZone(BuildingTool _this, BuildingInfo info, ushort block, Vector3 refPos, ref float minD, ref float min2, ref Vector3 minPos, ref float minAngle)
         {
             if ((int)block == 0)

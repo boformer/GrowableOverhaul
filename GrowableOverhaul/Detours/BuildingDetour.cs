@@ -1,12 +1,12 @@
-﻿using GrowableOverhaul.Redirection;
+﻿using GrowableOverhaul.Redirection.Attributes;
 using UnityEngine;
 
-namespace GrowableOverhaul
+namespace GrowableOverhaul.Detours
 {
     [TargetType(typeof(Building))]
-    public static class BuildingDetour
+    public class BuildingDetour
     {
-        [RedirectMethod(true)]
+        [RedirectMethod]
         private static void CheckZoning(ref Building _this, ItemClass.Zone zone1, ItemClass.Zone zone2, ref uint validCells, ref bool secondary, ref ZoneBlock block)
         {
             BuildingInfo.ZoningMode zoningMode = _this.Info.m_zoningMode;

@@ -1,18 +1,14 @@
 ﻿/*
 The MIT License (MIT)
-
-Copyright (c) 2015 Sebastian Schöner
-
+Copyright (c) 2015 Sebastian Sch�ner
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
 in the Software without restriction, including without limitation the rights
 to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 copies of the Software, and to permit persons to whom the Software is
 furnished to do so, subject to the following conditions:
-
 The above copyright notice and this permission notice shall be included in
 all copies or substantial portions of the Software.
-
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -53,14 +49,6 @@ namespace GrowableOverhaul.Redirection
             return PatchJumpTo(fptr1, fptr2);
         }
 
-        public static RedirectCallsState RedirectCalls(RuntimeMethodHandle from, RuntimeMethodHandle to)
-        {
-            // GetFunctionPointer enforces compilation of the method.
-            var fptr1 = from.GetFunctionPointer();
-            var fptr2 = to.GetFunctionPointer();
-            return PatchJumpTo(fptr1, fptr2);
-        }
-
         public static void RevertRedirect(MethodInfo from, RedirectCallsState state)
         {
             var fptr1 = from.MethodHandle.GetFunctionPointer();
@@ -75,18 +63,12 @@ namespace GrowableOverhaul.Redirection
         /// <param name="target"></param>
         public static RedirectCallsState PatchJumpTo(IntPtr site, IntPtr target)
         {
-            RedirectCallsState state = new RedirectCallsState();
-
+            RedirectCallsState state;
             // R11 is volatile.
             unsafe
             {
                 byte* sitePtr = (byte*)site.ToPointer();
-                state.a = *sitePtr;
-                state.b = *(sitePtr + 1);
-                state.c = *(sitePtr + 10);
-                state.d = *(sitePtr + 11);
-                state.e = *(sitePtr + 12);
-                state.f = *((ulong*)(sitePtr + 2));
+                state = GetState(sitePtr);
 
                 *sitePtr = 0x49; // mov r11, target
                 *(sitePtr + 1) = 0xBB;
@@ -95,15 +77,30 @@ namespace GrowableOverhaul.Redirection
                 *(sitePtr + 11) = 0xFF;
                 *(sitePtr + 12) = 0xE3;
             }
-
             return state;
         }
 
-        public static void RevertJumpTo(IntPtr site, RedirectCallsState state)
+        private static unsafe RedirectCallsState GetState(byte* sitePtr)
         {
+            var state = new RedirectCallsState
+            {
+                a = *sitePtr,
+                b = *(sitePtr + 1),
+                c = *(sitePtr + 10),
+                d = *(sitePtr + 11),
+                e = *(sitePtr + 12),
+                f = *((ulong*) (sitePtr + 2))
+            };
+            return state;
+        }
+
+        public static RedirectCallsState RevertJumpTo(IntPtr site, RedirectCallsState state)
+        {
+            RedirectCallsState detourState;
             unsafe
             {
                 byte* sitePtr = (byte*)site.ToPointer();
+                detourState = GetState(sitePtr);
                 *sitePtr = state.a; // mov r11, target
                 *(sitePtr + 1) = state.b;
                 *((ulong*)(sitePtr + 2)) = state.f;
@@ -111,6 +108,7 @@ namespace GrowableOverhaul.Redirection
                 *(sitePtr + 11) = state.d;
                 *(sitePtr + 12) = state.e;
             }
+            return detourState;
         }
 
     }

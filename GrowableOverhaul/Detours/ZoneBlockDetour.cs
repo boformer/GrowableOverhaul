@@ -1,20 +1,22 @@
 ﻿using ColossalFramework;
 using ColossalFramework.Math;
+using GrowableOverhaul.Redirection.Attributes;
 using GrowableOverhaul.Redirection;
 using UnityEngine;
 
-namespace GrowableOverhaul
+namespace GrowableOverhaul.Detours
 {
     [TargetType(typeof(ZoneBlock))]
-    public static class ZoneBlockDetour
+    public class ZoneBlockDetour 
     {
         // mask for m_flags to store the zone block depth (shifted by 24 bits)
         public const uint FLAG_COLUMNS = 251658240;// 0000 1111 0000 0000 0000 0000 0000 0000
 
         public static int GetColumnCount(ref ZoneBlock block)
         {
-            var count = (int) ((block.m_flags & FLAG_COLUMNS) >> 24);
-            return count > 0 ? count : 4; // return 4 (vanilla depth) for blocks with unset column count
+            var count = (int)((block.m_flags & FLAG_COLUMNS) >> 24);
+            //return count > 0 ? count : 4; // return 4 (vanilla depth) for blocks with unset column count
+            return count > 0 ? count : 8; // return 4 (vanilla depth) for blocks with unset column count
         }
 
         public static void SetColumnCount(ref ZoneBlock block, int value)
@@ -254,7 +256,7 @@ namespace GrowableOverhaul
         /// </summary>
         /// <param name="_this"></param>
         /// <param name="blockID"></param>
-        [RedirectMethod(true)]
+        [RedirectMethod]
         public static void CalculateBlock1(ref ZoneBlock _this, ushort blockID)
         {
             // skip zone blocks which are not in use
@@ -534,7 +536,7 @@ namespace GrowableOverhaul
                                         Vector2 otherColumnNearNextLength = ((float)otherColumn - 3.01f) * otherColumnDirection;
 
                                         // squared distance between the 2 cell middle positions
-                                        float cellMiddleDist = Vector2.SqrMagnitude(otherPositionXZ + (otherColumnNearNextLength + otherColumnNearPreviousLength + 
+                                        float cellMiddleDist = Vector2.SqrMagnitude(otherPositionXZ + (otherColumnNearNextLength + otherColumnNearPreviousLength +
                                             otherRowNearNextLength + otherRowNearPreviousLength) * 0.5f - cellMiddlePos);
 
                                         // check if the 2 cells can touch
@@ -620,7 +622,7 @@ namespace GrowableOverhaul
         /// </summary>
         /// <param name="_this"></param>
         /// <param name="blockID"></param>
-        [RedirectMethod(true)]
+        [RedirectMethod]
         public static void CalculateBlock2(ref ZoneBlock _this, ushort blockID)
         {
             // skip zone blocks which are not in use
@@ -863,7 +865,7 @@ namespace GrowableOverhaul
         /// </summary>
         /// <param name="_this"></param>
         /// <param name="blockID"></param>
-        [RedirectMethod(true)]
+        [RedirectMethod]
         public static void CalculateBlock3(ref ZoneBlock _this, ushort blockID)
         {
             // skip zone blocks which are not in use
@@ -960,7 +962,7 @@ namespace GrowableOverhaul
         /// </summary>
         /// <param name="_this"></param>
         /// <param name="blockID"></param>
-        [RedirectMethod(true)]
+        [RedirectMethod]
         public static void UpdateBlock(ref ZoneBlock _this, ushort blockID)
         {
             // skip zone blocks which are not in use
@@ -996,7 +998,7 @@ namespace GrowableOverhaul
         /// <param name="point"></param>
         /// <param name="minDistanceSq"></param>
         /// <returns></returns>
-        [RedirectMethod(true)]
+        [RedirectMethod]
         public static float PointDistanceSq(ref ZoneBlock _this, Vector3 point, float minDistanceSq)
         {
             // width of the zone
@@ -1063,7 +1065,7 @@ namespace GrowableOverhaul
         /// <param name="z"></param>
         /// <param name="zone"></param>
         /// <returns></returns>
-        [RedirectMethod(true)]
+        [RedirectMethod]
         public static bool SetZone(ref ZoneBlock _this, int x, int z, ItemClass.Zone zone)
         {
             // Calling this method should be avoided! Use SetZoneDeep instead
@@ -1143,7 +1145,7 @@ namespace GrowableOverhaul
         /// <param name="x"></param>
         /// <param name="z"></param>
         /// <returns></returns>
-        [RedirectMethod(true)]
+        [RedirectMethod]
         public static ItemClass.Zone GetZone(ref ZoneBlock _this, int x, int z)
         {
             // Calling this method should be avoided! Use GetZoneDeep instead
@@ -1153,7 +1155,7 @@ namespace GrowableOverhaul
 
         public static ItemClass.Zone GetZoneDeep(ref ZoneBlock _this, ushort blockID, int x, int z)
         {
-            if(x >= ZoneBlockDetour.GetColumnCount(ref _this)) return ItemClass.Zone.Distant;
+            if (x >= ZoneBlockDetour.GetColumnCount(ref _this)) return ItemClass.Zone.Distant;
 
             int num = z << 3 | (x & 1) << 2;
 
@@ -1176,7 +1178,7 @@ namespace GrowableOverhaul
         /// <param name="minZ"></param>
         /// <param name="maxX"></param>
         /// <param name="maxZ"></param>
-        [RedirectMethod(true)]
+        [RedirectMethod]
         public static void ZonesUpdated(ref ZoneBlock _this, ushort blockID, float minX, float minZ, float maxX, float maxZ)
         {
             // skip zone blocks which are not in use
@@ -1354,7 +1356,8 @@ namespace GrowableOverhaul
 
                         // TODO raise numbers and array size for 8x8 lot support
 
-                        if (roundedDistColumnDirection >= 0 && roundedDistColumnDirection <= 6 && (roundedDistRowDirection >= -6 && roundedDistRowDirection <= 6)
+                        //if (roundedDistColumnDirection >= 0 && roundedDistColumnDirection <= 6 && (roundedDistRowDirection >= -6 && roundedDistRowDirection <= 6) old
+                        if (roundedDistColumnDirection >= 0 && roundedDistColumnDirection <= 15 && (roundedDistRowDirection >= -6 && roundedDistRowDirection <= 6)
                             // cells must be aligned in the same grid + 1% tolerance
                             && ((double)Mathf.Abs(distColumnDirection - (float)roundedDistColumnDirection) < 0.0125000001862645
                             && (double)Mathf.Abs(distRowDirection - (float)roundedDistRowDirection) < 0.0125000001862645
@@ -1365,11 +1368,13 @@ namespace GrowableOverhaul
                         {
                             // Mark the cell in the column mask (in the row buffer array)
                             xBuffer[roundedDistRowDirection + 6] |= 1 << roundedDistColumnDirection;
+                            //xBuffer[roundedDistRowDirection + 7] |= 1 << roundedDistColumnDirection;
 
                             // If the column touches the road, also mark it in the second part of the int mask
                             if (column == 0)
                             {
-                                xBuffer[roundedDistRowDirection + 6] |= 1 << roundedDistColumnDirection + 16; // shift by 16
+                                xBuffer[roundedDistRowDirection + 6] |= 1 << roundedDistColumnDirection + 16; // shift by 16 old
+                                //xBuffer[roundedDistRowDirection + 7] |= 1 << roundedDistColumnDirection + 16; // shift by 16
                             }
                         }
                     }
@@ -1444,7 +1449,7 @@ namespace GrowableOverhaul
         /// </summary>
         /// <param name="_this"></param>
         /// <param name="blockID"></param>
-        [RedirectMethod(true)]
+        [RedirectMethod]
         public static void SimulationStep(ref ZoneBlock _this, ushort blockID)
         {
             ZoneManager zoneManager = Singleton<ZoneManager>.instance;
@@ -1515,6 +1520,8 @@ namespace GrowableOverhaul
 
             // put the surrounding area of the seed cell into a quad
             // TODO maybe check a bigger area?
+
+            /* OLD
             Quad2 seedPointAreaQuad = new Quad2
             {
                 a = positionXZ - 4f * columnDirection + ((float)seedRow - 10f) * rowDirection,
@@ -1522,6 +1529,17 @@ namespace GrowableOverhaul
                 c = positionXZ + 3f * columnDirection + ((float)seedRow + 2f) * rowDirection,
                 d = positionXZ - 4f * columnDirection + ((float)seedRow + 2f) * rowDirection
             };
+            */
+
+            Quad2 seedPointAreaQuad = new Quad2
+            {
+                a = positionXZ - 8f * columnDirection + ((float)seedRow - 14f) * rowDirection,
+                b = positionXZ + 6f * columnDirection + ((float)seedRow - 14f) * rowDirection,
+                c = positionXZ + 6f * columnDirection + ((float)seedRow + 5f) * rowDirection,
+                d = positionXZ - 8f * columnDirection + ((float)seedRow + 5f) * rowDirection
+            };
+
+
             Vector2 seedPointAreaMin = seedPointAreaQuad.Min();
             Vector2 seedPointAreaMax = seedPointAreaQuad.Max();
 
@@ -1579,27 +1597,90 @@ namespace GrowableOverhaul
                 while (((int)columnMask & 1) != 0)
                 {
                     ++columnCount;
-
+                    
                     // check if the cell has road access
                     // 65536 = 0000 0000 0000 0001 0000 0000 0000 0000
                     backsideRoadAccess = ((int)columnMask & 65536) != 0;
 
                     // move on to the next cell
                     columnMask >>= 1;
+                    Debug.Log("Starting ColumnCount = " + columnCount);
                 }
+                
 
-                if (columnCount == 5 || columnCount == 6)
+                if (columnCount == 5)
                 {
                     // if the last checked cell has road access, decrease max depth to number between 2 and 4, otherwise set it to 4
                     // always set the "depth shortened flag" (131072)
-                    columnCount = (!backsideRoadAccess ? 4 : columnCount - (Singleton<SimulationManager>.instance.m_randomizer.Int32(2U) + 2)) | 131072;
+                    if (backsideRoadAccess) columnCount = 2 | 131072;
+                    else columnCount = 5;
                 }
-                else if (columnCount == 7)
+
+                if (columnCount == 6)
+                {  
+                    if (backsideRoadAccess) columnCount = 3 | 131072;
+                    else columnCount = 6;
+                }
+
+                if (columnCount == 7)
                 {
                     // 131072 = 0000 0000 0000 0010 0000 0000 0000 0000
                     // set the "depth shortened flag" and and set max depth to 4
-                    columnCount = 4 | 131072;
+                    if (backsideRoadAccess) columnCount = 3 | 131072;
+                    else columnCount = 7;
                 }
+               
+                if (columnCount == 8)
+                {
+                    if (backsideRoadAccess) columnCount = 4 | 131072;
+                    else columnCount = 8;
+                   
+                }
+                if (columnCount == 9)
+                {
+                   columnCount = 4 | 131072;
+
+                }
+                if (columnCount == 10 )
+                {
+                    columnCount = 5 | 131072;
+
+                }
+                if (columnCount == 11)
+                {
+                   columnCount = 5 | 131072;
+                }
+                if (columnCount == 12)
+                {
+                    columnCount = 6 | 131072;
+                }
+                if (columnCount == 13)
+                {
+                    columnCount = 6 | 131072;
+                }
+                if (columnCount == 14)
+                {
+                    columnCount = 7 | 131072;
+                }
+                if (columnCount == 15)
+                {
+                    columnCount = 7 | 131072;
+                }
+
+                if (columnCount == 16)
+                {
+                    columnCount = 7 | 131072;
+                }
+
+                else if (columnCount == 17)
+                {
+                    
+                    columnCount = 8 | 131072;
+                }
+
+
+
+                Debug.Log("Shortened ColumnCount = " + columnCount);
                 // TODO add support for larger lots! (8,9,10,11,12,13,14,15)
                 if (cornerRoadAccess)
                 {
@@ -1614,6 +1695,8 @@ namespace GrowableOverhaul
 
             // use bitmask to read depth at seed row
             // 0000 0000 0000 0000 1111 1111 1111 1111 
+            //int targetColumnCount = xBuffer[6] & 65535; old
+
             int targetColumnCount = xBuffer[6] & 65535;
 
             // all columns at seed row occupied? bad seed row!
@@ -1935,12 +2018,14 @@ namespace GrowableOverhaul
 
                     // do this while the selected width or the width range are greater than 4
                     // TODO this needs to be changed to 8
-                    while (calculatedRightRow - calculatedLeftRow > 3 || randomizedRightRow - randomozedLeftRow > 3);
+                    //while (calculatedRightRow - calculatedLeftRow > 3 || randomizedRightRow - randomozedLeftRow > 3);
+                    while (calculatedRightRow - calculatedLeftRow > 7 || randomizedRightRow - randomozedLeftRow > 7);
                 }
 
 
                 // STEP 3: Calculate final position, width, depth and zoning mode based on calculated row range
-                int calculatedDepth = 4;
+                //int calculatedDepth = 4; old
+                int calculatedDepth = 16;
                 int calculatedWidth = calculatedRightRow - calculatedLeftRow + 1;
                 BuildingInfo.ZoningMode calculatedZoningMode = BuildingInfo.ZoningMode.Straight;
 
@@ -1980,7 +2065,10 @@ namespace GrowableOverhaul
 
                 // STEP 4: Calculate final position, width, depth and zoning mode based on randomized row range
 
+                //int randomizedDepth = 4; old
+
                 int randomizedDepth = 4;
+
                 int randomizedWidth = randomizedRightRow - randomozedLeftRow + 1;
                 BuildingInfo.ZoningMode randomizedZoningMode = BuildingInfo.ZoningMode.Straight;
 
@@ -2052,7 +2140,8 @@ namespace GrowableOverhaul
                 Vector3 buildingSpawnPos = Vector3.zero;
 
                 int finalSpawnRowDouble = 0; // this is the doubled relative spawn position
-                int finalDepth = 0;
+                //int finalDepth = 0; old
+                int finalDepth = 16;
                 int finalWidth = 0;
                 BuildingInfo.ZoningMode finalZoningMode = BuildingInfo.ZoningMode.Straight;
 
@@ -2138,7 +2227,17 @@ namespace GrowableOverhaul
                             ushort style = districtManager.m_districts.m_buffer[(int)buildingDistrict].m_Style;
 
                             // find random building
-                            info = Singleton<BuildingManager>.instance.GetRandomBuildingInfo(ref Singleton<SimulationManager>.instance.m_randomizer, service, subService, level, finalWidth, finalDepth, finalZoningMode, (int)style);
+
+                            Debug.Log("finalDepth = " + finalDepth + " FinalWidth = " + finalWidth);
+
+                            if (finalDepth >=5)
+                            {
+                                info = PrefabCollection<BuildingInfo>.FindLoaded(finalWidth + "x" + finalDepth + "ResTest_Data");
+                            }
+
+                            else {
+                                info = Singleton<BuildingManager>.instance.GetRandomBuildingInfo(ref Singleton<SimulationManager>.instance.m_randomizer, service, subService, level, finalWidth, finalDepth, finalZoningMode, (int)style);
+                            }
 
                             // no building found? go back to switch statement and use different calculations
                             if (info == null) break;

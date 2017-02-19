@@ -1,13 +1,13 @@
 ﻿using ColossalFramework;
-using GrowableOverhaul.Redirection;
+using GrowableOverhaul.Redirection.Attributes;
 using UnityEngine;
 
-namespace GrowableOverhaul
+namespace GrowableOverhaul.Detours
 {
     [TargetType(typeof(RoadAI))]
-    public static class RoadAIDetour
+    public class RoadAIDetour
     {
-        [RedirectMethod(false)] // reason for detour: display correct zone area when using NetTool
+        [RedirectMethod] // reason for detour: display correct zone area when using NetTool
         public static void GetEffectRadius(RoadAI _this, out float radius, out bool capped, out Color color)
         {
             if (_this.m_enableZoning)

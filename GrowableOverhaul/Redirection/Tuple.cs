@@ -1,6 +1,6 @@
-﻿
-namespace GrowableOverhaul.Redirection
+﻿namespace GrowableOverhaul.Redirection
 {
+
     public class Tuple<T1, T2>
     {
         public T1 First { get; private set; }
