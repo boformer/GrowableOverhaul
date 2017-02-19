@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace GrowableOverhaul.Redirection.Attributes
+namespace GrowableOverhaul.Redirection
 {
     [AttributeUsage(AttributeTargets.Class | AttributeTargets.Struct)]
     public class TargetTypeAttribute : Attribute

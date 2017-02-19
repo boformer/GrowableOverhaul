@@ -1,43 +1,40 @@
 ﻿using ColossalFramework.Math;
-using GrowableOverhaul.Redirection.Attributes;
-using GrowableOverhaul.Redirection.Extensions;
 using GrowableOverhaul.Redirection;
-
 using UnityEngine;
 
-namespace GrowableOverhaul.Detours
+namespace GrowableOverhaul
 {
     [TargetType(typeof(ZoneManager))]
-    public class ZoneManagerDetour : ZoneManager
+    public static class ZoneManagerDetour
     {
         // This list must be in sync with ZoneManager#m_cachedBlocks
         public static FastList<ushort> cachedBlockIDs = new FastList<ushort>();
 
-        //public static Redirector<ZoneManagerDetour> CreateBlockRedirector = null;
-        //public static Redirector<ZoneManagerDetour> ReleaseBlockRedirector = null;
-        //public static Redirector SimulationStepImplRedirector = null;
+        public static Redirector CreateBlockRedirector = null;
+        public static Redirector ReleaseBlockRedirector = null;
+        public static Redirector SimulationStepImplRedirector = null;
 
         
-        [RedirectMethod] // Detour reason: Keep cachedBlockIDs in sync
+        [RedirectMethod(true)] // Detour reason: Keep cachedBlockIDs in sync
         private static void SimulationStepImpl(ZoneManager _this, int subStep)
         {
             bool blocksUpdated = _this.m_blocksUpdated;
 
             // Call original method
-            //Redirector<ZoneManagerDetour>.Revert();
+            SimulationStepImplRedirector.Revert();
             SimulationStepImplAlt(_this, subStep);
-            //Redirector<ZoneManagerDetour>.Deploy();
+            SimulationStepImplRedirector.Apply();
 
             if(blocksUpdated) cachedBlockIDs.Clear();
         }
 
-        [RedirectReverse]
+        [RedirectReverse(true)]
         private static void SimulationStepImplAlt(ZoneManager _this, int subStep)
         {
             Debug.Log($"SimulationStepImpl {subStep}");
         }
 
-        [RedirectMethod] // Detour reason: Keep cachedBlockIDs in sync
+        [RedirectMethod(true)] // Detour reason: Keep cachedBlockIDs in sync
         public static void ReleaseBlock(ZoneManager _this, ushort block)
         {
             if (_this.m_blocks.m_buffer[block].m_flags != 0u)
@@ -46,9 +43,9 @@ namespace GrowableOverhaul.Detours
             }
 
             // Call original method
-            Redirector<ZoneManagerDetour>.Revert();
+            ReleaseBlockRedirector.Revert();
             _this.ReleaseBlock(block);
-            Redirector<ZoneManagerDetour>.Deploy();
+            ReleaseBlockRedirector.Apply();
         }
 
         /// <summary>
@@ -62,7 +59,7 @@ namespace GrowableOverhaul.Detours
         /// <param name="rows"></param>
         /// <param name="buildIndex"></param>
         /// <returns></returns>
-        [RedirectMethod] // Detour Reason: Deeper zones data storage, custom depth
+        [RedirectMethod(true)] // Detour Reason: Deeper zones data storage, custom depth
         public static bool CreateBlock(ZoneManager _this, out ushort block, ref Randomizer randomizer, Vector3 position, float angle, int rows, uint buildIndex)
         {
             bool result;
@@ -76,9 +73,9 @@ namespace GrowableOverhaul.Detours
             else
             {
                 // Call original method
-                Redirector<ZoneManagerDetour>.Revert();
+                CreateBlockRedirector.Revert();
                 result = _this.CreateBlock(out block, ref randomizer, position, angle, rows, buildIndex);
-                Redirector<ZoneManagerDetour>.Deploy();
+                CreateBlockRedirector.Apply();
 
                 if (result)
                 {
@@ -107,7 +104,7 @@ namespace GrowableOverhaul.Detours
         /// <param name="space2">building plot columns 5 - 8</param>
         /// <param name="space3">building plot columns 9 - 12</param>
         /// <param name="space4">building plot columns 13 - 16</param>
-        [RedirectMethod]
+        [RedirectMethod(true)]
         public static void CheckSpace(ZoneManager _this, ushort block, Vector3 position, float angle, int width, int length, ref ulong space1, ref ulong space2, ref ulong space3, ref ulong space4)
         {
             ZoneBlock zoneBlock = _this.m_blocks.m_buffer[(int)block];

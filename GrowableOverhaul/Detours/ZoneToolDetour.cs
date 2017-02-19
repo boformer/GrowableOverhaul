@@ -1,12 +1,12 @@
 ﻿using System.Reflection;
 using ColossalFramework.Math;
-using GrowableOverhaul.Redirection.Attributes;
+using GrowableOverhaul.Redirection;
 using UnityEngine;
 
-namespace GrowableOverhaul.Detours
+namespace GrowableOverhaul
 {
     [TargetType(typeof(ZoneTool))]
-    public class ZoneToolDetour
+    public static class ZoneToolDetour
     {
         private static FieldInfo m_fillBuffer1_field;
         private static FieldInfo m_zoning_field;
@@ -41,7 +41,7 @@ namespace GrowableOverhaul.Detours
             return (bool)m_dezoning_field.GetValue(_this);
         }
 
-        [RedirectMethod]
+        [RedirectMethod(false)]
         private static void Snap(ZoneTool _this, ref Vector3 point, ref Vector3 direction, ref ItemClass.Zone zone, ref bool occupied1, ref bool occupied2, ref ZoneBlock block)
         {
             direction = new Vector3(Mathf.Cos(block.m_angle), 0.0f, Mathf.Sin(block.m_angle));
@@ -62,7 +62,7 @@ namespace GrowableOverhaul.Detours
             occupied2 = block.IsOccupied2(num1 + 4, num2 + 4);
         }
 
-        [RedirectMethod]
+        [RedirectMethod(false)]
         private static void CalculateFillBuffer(ZoneTool _this, Vector3 position, Vector3 direction, float angle, ushort blockIndex, ref ZoneBlock block, ItemClass.Zone requiredZone, bool occupied1, bool occupied2)
         {
             float f1 = Mathf.Abs(block.m_angle - angle) * 0.6366197f;
@@ -109,7 +109,7 @@ namespace GrowableOverhaul.Detours
             }
         }
 
-        [RedirectMethod]
+        [RedirectMethod(false)]
         private static bool ApplyFillBuffer(ZoneTool _this, Vector3 position, Vector3 direction, float angle, ushort blockIndex, ref ZoneBlock block)
         {
             var m_zoning = IsZoningEnabled(_this); // custom
@@ -166,7 +166,7 @@ namespace GrowableOverhaul.Detours
             return true;
         }
 
-        [RedirectMethod]
+        [RedirectMethod(false)]
         private static bool ApplyZoning(ZoneTool _this, ushort blockIndex, ref ZoneBlock data, Quad2 quad2)
         {
             int rowCount = data.RowCount;
@@ -215,7 +215,7 @@ namespace GrowableOverhaul.Detours
             return true;
         }
 
-        [RedirectMethod]
+        [RedirectMethod(false)]
         private static void ApplyBrush(ZoneTool _this, ushort blockIndex, ref ZoneBlock data, Vector3 position, float brushRadius)
         {
             Vector3 vector3_1 = data.m_position - position;
@@ -259,7 +259,7 @@ namespace GrowableOverhaul.Detours
             UsedZone(_this, _this.m_zone);
         }
 
-        [RedirectReverse]
+        [RedirectReverse(false)]
         private static void UsedZone(ZoneTool _this, ItemClass.Zone zone)
         {
             Debug.Log($"Dummy code: {zone}");

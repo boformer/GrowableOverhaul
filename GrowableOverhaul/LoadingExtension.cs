@@ -1,65 +1,101 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Reflection;
-using GrowableOverhaul.Redirection.Extensions;
 using GrowableOverhaul.Redirection;
-using GrowableOverhaul.Detours;
 using ICities;
 using UnityEngine;
 
 namespace GrowableOverhaul
 {
-    public class LoadingExtension : LoadingExtensionBase
+    public class LoadingExtension : ILoadingExtension
     {
+        private readonly Dictionary<MethodInfo, Redirector> redirectsOnLoaded = new Dictionary<MethodInfo, Redirector>();
+        private readonly Dictionary<MethodInfo, Redirector> redirectsOnCreated = new Dictionary<MethodInfo, Redirector>();
 
+        private bool created;
+        private bool loaded;
 
         private PrefabManager PrefabManager;
 
-
-        public override void OnCreated(ILoading loading)
+        public void OnCreated(ILoading loading)
         {
-            base.OnCreated(loading);
+            Debug.Log("GrowableOverhaul OnCreated!");
 
-            if (loading.currentMode == AppMode.Game)
-            {
-               
-            }
+            if (created) return;
+
+            // TODO detect conflicting mods (Building Themes, 81 tiles, etc.)
+
+            Redirect(true);
+            created = true;
         }
 
-        public override void OnLevelLoaded(LoadMode mode)
+        public void OnLevelLoaded(LoadMode mode)
         {
             PrefabManager = new PrefabManager();
             PrefabManager.ConvertPrefab();
 
-            Redirector<BuildingDetour>.Deploy();
-            Redirector<BuildingToolDetour>.Deploy();
-            Redirector<NetManagerDetour>.Deploy();
-            Redirector<RoadAIDetour>.Deploy();
-            Redirector<TerrainManagerDetour>.Deploy();
-            Redirector<ZoneBlockDetour>.Deploy();
-            Redirector<ZoneManagerDetour>.Deploy();
-            Redirector<ZoneToolDetour>.Deploy();
+            Debug.Log("GrowableOverhaul OnLevelLoaded!");
+
+            if (!created || loaded) return;
+
+            Redirect(false);
+            loaded = true;
         }
 
-        public override void OnLevelUnloading()
+        public void OnLevelUnloading()
         {
-           
+            if (!created || !loaded) return;
+
+            RevertRedirect(false);
+            loaded = false;
         }
 
-        public override void OnReleased()
+        public void OnReleased()
         {
-            base.OnReleased();
+            if (!created) return;
 
-            Redirector<BuildingDetour>.Revert();
-            Redirector<BuildingToolDetour>.Revert();
-            Redirector<NetManagerDetour>.Revert();
-            Redirector<RoadAIDetour>.Revert();
-            Redirector<TerrainManagerDetour>.Revert();
-            Redirector<ZoneBlockDetour>.Revert();
-            Redirector<ZoneManagerDetour>.Revert();
-            Redirector<ZoneToolDetour>.Revert();
-
+            if(loaded) OnLevelUnloading();
+            RevertRedirect(false);
+            created = false;
         }
 
+        private void Redirect(bool onCreated)
+        {
+            var redirects = onCreated ? redirectsOnCreated : redirectsOnLoaded;
+            redirects.Clear();
+
+            foreach (var type in Assembly.GetExecutingAssembly().GetTypes())
+            {
+                try
+                {
+                    var r = RedirectionUtil.RedirectType(type, onCreated);
+                    if (r == null) continue;
+                    foreach (var pair in r) redirects.Add(pair.Key, pair.Value);
+                }
+                catch (Exception e)
+                {
+                    Debug.LogError($"An error occured while applying {type.Name} redirects!");
+                    Debug.LogException(e);
+                }
+            }
+        }
+
+        private void RevertRedirect(bool onCreated)
+        {
+            var redirects = onCreated ? redirectsOnCreated : redirectsOnLoaded;
+            foreach (var kvp in redirects)
+            {
+                try
+                {
+                    kvp.Value.Revert();
+                }
+                catch (Exception e)
+                {
+                    Debug.LogError($"An error occured while reverting {kvp.Key.Name} redirect!");
+                    Debug.LogException(e);
+                }
+            }
+            redirects.Clear();
+        }
     }
 }

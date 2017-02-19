@@ -1,10 +1,8 @@
 ﻿using ColossalFramework.Math;
-using GrowableOverhaul.Redirection.Attributes;
-using GrowableOverhaul.Redirection.Extensions;
 using GrowableOverhaul.Redirection;
 using UnityEngine;
 
-namespace GrowableOverhaul.Detours
+namespace GrowableOverhaul
 {
     /// <summary>
     /// These detours are required to make variable zone depth work.
@@ -12,10 +10,10 @@ namespace GrowableOverhaul.Detours
     /// or otherwise replaced by a new segment, the zone depth value must be transferred
     /// </summary>
     [TargetType(typeof(NetManager))]
-    public class NetManagerDetour
+    public static class NetManagerDetour
     {
-        //public static Redirector<NetManagerDetour> CreateSegmentRedirector;
-        //public static Redirector<NetManagerDetour> ReleaseSegmentRedirector;
+        public static Redirector CreateSegmentRedirector;
+        public static Redirector ReleaseSegmentRedirector;
 
         // The ZoneManagerDetour.CreateBlock uses this value
         public static int newBlockColumnCount;
@@ -24,7 +22,7 @@ namespace GrowableOverhaul.Detours
         private static int SplitSegment_releasedColumnCount;
         private static int MoveMiddleNode_releasedColumnCount;
 
-        [RedirectMethod]
+        [RedirectMethod(false)]
         public static bool CreateSegment(NetManager _this, out ushort segmentID, ref Randomizer randomizer, NetInfo info, ushort startNode, ushort endNode, Vector3 startDirection, Vector3 endDirection, uint buildIndex, uint modifiedIndex, bool invert)
         {
             var ai = info.m_netAI as RoadAI;
@@ -53,14 +51,14 @@ namespace GrowableOverhaul.Detours
             }
 
             // Call original method
-            Redirector<NetManagerDetour>.Revert();
+            CreateSegmentRedirector.Revert();
             var success = _this.CreateSegment(out segmentID, ref randomizer, info, startNode, endNode, startDirection, endDirection, buildIndex, modifiedIndex, invert);
-            Redirector<NetManagerDetour>.Deploy();
+            CreateSegmentRedirector.Apply();
 
             return success;
         }
 
-        [RedirectMethod]
+        [RedirectMethod(false)]
         public static void ReleaseSegment(NetManager _this, ushort segmentID, bool keepNodes)
         {
             var segment = _this.m_segments.m_buffer[segmentID];
@@ -94,9 +92,9 @@ namespace GrowableOverhaul.Detours
             }
 
             // Call original method
-            Redirector<NetManagerDetour>.Revert();
+            ReleaseSegmentRedirector.Revert();
             _this.ReleaseSegment(segmentID, keepNodes);
-            Redirector<NetManagerDetour>.Deploy();
+            ReleaseSegmentRedirector.Apply();
         }
 
         public static void FindColumnCount(ushort blockID, ref int columnCount)

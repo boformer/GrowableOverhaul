@@ -1,22 +1,34 @@
-﻿using GrowableOverhaul.Redirection.Extensions;
+﻿using System;
+using System.Reflection;
 
 namespace GrowableOverhaul.Redirection
 {
-    public class Redirector<T>
+    public class Redirector
     {
-        public static void Deploy()
+        private RedirectCallsState state;
+        private readonly IntPtr site;
+        private readonly IntPtr target;
+
+        public Redirector(MethodInfo from, MethodInfo to)
         {
-            typeof(T).Redirect();
+            site = from.MethodHandle.GetFunctionPointer();
+            target = to.MethodHandle.GetFunctionPointer();
         }
 
-        public static void Revert()
+        public void Apply()
         {
-            typeof(T).Revert();
+            if (Deployed) return;
+            state = RedirectionHelper.PatchJumpTo(site, target);
+            Deployed = true;
         }
 
-        public static bool IsDeployed()
+        public void Revert()
         {
-            return typeof(T).IsRedirected();
+            if (!Deployed) return;
+            RedirectionHelper.RevertJumpTo(site, state);
+            Deployed = false;
         }
+
+        public bool Deployed { get; private set; }
     }
 }

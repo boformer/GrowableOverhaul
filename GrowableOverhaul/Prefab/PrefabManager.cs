@@ -4,8 +4,26 @@ using System.Linq;
 using System.Text;
 
 namespace GrowableOverhaul
+/// <summary>
+/// These are simple classes for testing purposes. 
+/// </summary>
 {
-    class PrefabManager
+    public class LargerResidential : ResidentialBuildingAI
+    {
+
+        public override void GetWidthRange(out int minWidth, out int maxWidth)
+        {
+            minWidth = 1;
+            maxWidth = 16;
+        }
+
+        public override void GetLengthRange(out int minLength, out int maxLength)
+        {
+            minLength = 1;
+            maxLength = 16;
+        }
+    }
+class PrefabManager
     {
 
         string[] LowResTestlots = {
@@ -89,7 +107,7 @@ namespace GrowableOverhaul
 
             foreach (var buildingName in LowResTestlots)
             {
-                
+
                 var prefab = PrefabCollection<BuildingInfo>.FindLoaded(buildingName);
 
                 if (prefab != null)
@@ -101,7 +119,7 @@ namespace GrowableOverhaul
 
                     prefab.m_class = ItemClassCollection.FindClass("Low Residential - Level1");
                 }
-               
+
             }
         }
     }
