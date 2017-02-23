@@ -1602,7 +1602,7 @@ namespace GrowableOverhaul
 
                     // move on to the next cell
                     columnMask >>= 1;
-                    Debug.Log("Starting ColumnCount = " + columnCount);
+                   // Debug.Log("Starting ColumnCount = " + columnCount);
                 }
 
 
@@ -1678,7 +1678,7 @@ namespace GrowableOverhaul
 
 
 
-                Debug.Log("Shortened ColumnCount = " + columnCount);
+                //Debug.Log("Shortened ColumnCount = " + columnCount);
                 // TODO add support for larger lots! (8,9,10,11,12,13,14,15)
                 if (cornerRoadAccess)
                 {
@@ -2226,17 +2226,20 @@ namespace GrowableOverhaul
 
                             // find random building
 
-                            Debug.Log("finalDepth = " + finalDepth + " FinalWidth = " + finalWidth);
+                            Debug.Log("FinalDepth = " + finalDepth + " FinalWidth = " + finalWidth);
 
+                            /*
                             if (finalDepth >= 5)
                             {
                                 info = PrefabCollection<BuildingInfo>.FindLoaded(finalWidth + "x" + finalDepth + "ResTest_Data");
                             }
 
                             else {
-                                info = Singleton<BuildingManager>.instance.GetRandomBuildingInfo(ref Singleton<SimulationManager>.instance.m_randomizer, service, subService, level, finalWidth, finalDepth, finalZoningMode, (int)style);
-                            }
+                            */
+                                info = Singleton<BuildingManager>.instance.GetRandomBuildingInfo(ref Singleton<SimulationManager>.instance.m_randomizer, service, subService, level, finalWidth, finalDepth, finalZoningMode, 0);
+                            // }
 
+                            //Debug.Log(info.name);
                             // no building found? go back to switch statement and use different calculations
                             if (info == null) break;
 

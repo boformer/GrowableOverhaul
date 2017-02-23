@@ -31,8 +31,8 @@ namespace GrowableOverhaul
 
         public void OnLevelLoaded(LoadMode mode)
         {
-            PrefabManager = new PrefabManager();
-            PrefabManager.ConvertPrefab();
+            //PrefabManager = new PrefabManager();
+            //PrefabManager.ConvertPrefab();
 
             Debug.Log("GrowableOverhaul OnLevelLoaded!");
 

@@ -115,8 +115,10 @@ class PrefabManager
                     var ai = prefab.gameObject.AddComponent<LargerResidential>();
                     prefab.m_buildingAI = ai;
                     prefab.m_buildingAI.m_info = prefab;
+                    prefab.m_zoningMode = BuildingInfo.ZoningMode.Straight;
                     prefab.InitializePrefab();
-
+                    prefab.m_autoRemove = true;
+                   
                     prefab.m_class = ItemClassCollection.FindClass("Low Residential - Level1");
                 }
 

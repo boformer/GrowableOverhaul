@@ -49,6 +49,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Detours\BuildingDetour.cs" />
+    <Compile Include="Detours\BuildingManagerDetour.cs" />
     <Compile Include="Detours\BuildingToolDetour.cs" />
     <Compile Include="InputThreadingExtension.cs" />
     <Compile Include="LoadingExtension.cs" />
