@@ -1,6 +1,8 @@
 ﻿using ColossalFramework.Math;
 using GrowableOverhaul.Redirection;
 using UnityEngine;
+using System.Reflection;
+
 
 namespace GrowableOverhaul
 {
@@ -91,6 +93,8 @@ namespace GrowableOverhaul
             return result;
         }
 
+        
+
         /// <summary>
         /// Helper of the other CheckSpace method.
         /// </summary>
@@ -107,6 +111,10 @@ namespace GrowableOverhaul
         [RedirectMethod(true)]
         public static void CheckSpace(ZoneManager _this, ushort block, Vector3 position, float angle, int width, int length, ref ulong space1, ref ulong space2, ref ulong space3, ref ulong space4)
         {
+
+         
+
+
             ZoneBlock zoneBlock = _this.m_blocks.m_buffer[(int)block];
 
             // difference of 2 radian angles (360 deg = 2*PI * 0.6366197f = 4f)

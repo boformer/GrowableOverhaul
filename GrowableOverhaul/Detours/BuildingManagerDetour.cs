@@ -46,14 +46,10 @@ namespace GrowableOverhaul
         [RedirectMethod(true)]
         public static void ApplyRefreshBuildings(BuildingManager _this, BuildingInfo[] infos, ushort[] indices, int style)
         {
-            Debug.Log("ApplyRefreshBuildings called");
 
-            //FastList<ushort>[] areaBuildings = GetAreaBuildings(ref _this);
+        //clear array, and assign 10x larger array to hold larger values. Original was 3040. 
+           FastList<ushort>[] areaBuildings = new FastList<ushort>[30400];
 
-            //if (areaBuildings.Length == 3040)
-            //{
-                FastList<ushort>[] areaBuildings = new FastList<ushort>[30400];
-            //}
 
             for (int i = 0; i < infos.Length; i++)
             {
@@ -62,9 +58,10 @@ namespace GrowableOverhaul
                 {
                     int privateServiceIndex = ItemClass.GetPrivateServiceIndex(info.m_class.m_service);
                     if (privateServiceIndex != -1)
-                    {   //increase from 4 to 16
-                        if (info.GetWidth() < 1 || info.GetWidth() > 8)
+                    {  //modified to account for 8 deep lots. 
+                        if (info.GetWidth() < 1 || info.GetWidth() > 8) //was 4
                         {
+                            //removed so it wont stop execution. 
                             /*
                             ThreadHelper.dispatcher.Dispatch(delegate
                             {
@@ -78,9 +75,11 @@ namespace GrowableOverhaul
                             });
                             */
                             continue;
-                        }//increase from 4 to 16
-                        else if (info.GetLength() < 1 || info.GetLength() > 8)
+
+                        }//modified to account for 8 deep lots. 
+                        else if (info.GetLength() < 1 || info.GetLength() > 8) //was 4
                         {
+                            //removed so it wont stop execution. 
                             /*
                             ThreadHelper.dispatcher.Dispatch(delegate
                             {
@@ -97,7 +96,7 @@ namespace GrowableOverhaul
                         }
                         else
                         {
-                            int areaIndex = GetAreaIndex2( info.m_class.m_service, info.m_class.m_subService, info.m_class.m_level, info.GetWidth(), info.GetLength(), info.m_zoningMode);
+                            int areaIndex = GetAreaIndex(info.m_class.m_service, info.m_class.m_subService, info.m_class.m_level, info.GetWidth(), info.GetLength(), info.m_zoningMode);
                             Debug.Log(info.name + " AreaIndex is: " + areaIndex);
 
                             if (areaBuildings[areaIndex] == null)
@@ -113,20 +112,20 @@ namespace GrowableOverhaul
             int num = 19;
             for (int j = 0; j < num; j++)
             {
-                // 5 levels
+                //5 levels
                 for (int k = 0; k < 5; k++)
                 {
-                    // 8 widths old was 4
+                   //modified, original was 4
                     for (int l = 0; l < 8; l++)
                     {
-                        // old was 4
+                        //modified, original was 4
                         for (int m = 1; m < 8; m++)
                         {
-                            //old was 4
+                            //modified, original was 4
                             int num2 = j;
                             num2 = num2 * 5 + k;
-                            num2 = num2 * 8 + l;
-                            num2 = num2 * 8 + m;
+                            num2 = num2 * 8 + l; // was 4
+                            num2 = num2 * 8 + m; // was 4
                             num2 *= 2;
                             FastList<ushort> fastList = areaBuildings[num2];
                             FastList<ushort> fastList2 = areaBuildings[num2 - 2];
@@ -148,20 +147,18 @@ namespace GrowableOverhaul
                     }
                 }
             }
-            for (int num3 = 0; num3 < infos.Length; num3++)
+            for (int index = 0; index < infos.Length; index++)
             {
-                BuildingInfo info = infos[num3];
-
-                //Debug.Log(info.name);
+                BuildingInfo info = infos[index];
 
                 if (info != null && info.m_class.m_service != ItemClass.Service.None && info.m_placementStyle == ItemClass.Placement.Automatic && !info.m_dontSpawnNormally)
                 {
                     int privateServiceIndex2 = ItemClass.GetPrivateServiceIndex(info.m_class.m_service);
                     if (privateServiceIndex2 != -1)
-                    {//increase from 4 to 16
-                        if (info.GetWidth() >= 1 && info.GetWidth() <= 8)
-                        {//increase from 4 to 16
-                            if (info.GetLength() >= 1 && info.GetLength() <= 8)
+                    {//modified
+                        if (info.GetWidth() >= 1 && info.GetWidth() <= 8) //was 4
+                        {
+                            if (info.GetLength() >= 1 && info.GetLength() <= 8) //was 4
                             {
                                 ItemClass.Level level = ItemClass.Level.Level1;
                                 ItemClass.Level level2 = ItemClass.Level.Level1;
@@ -197,9 +194,10 @@ namespace GrowableOverhaul
                                 }
                                 if (info.m_class.m_level < level2)
                                 {
-                                    int areaIndex2 = GetAreaIndex2(info.m_class.m_service, info.m_class.m_subService, info.m_class.m_level + 1, info.GetWidth(), info.GetLength(), info.m_zoningMode);
+                                    int areaIndex2 = GetAreaIndex(info.m_class.m_service, info.m_class.m_subService, info.m_class.m_level + 1, info.GetWidth(), info.GetLength(), info.m_zoningMode);
                                     if (areaBuildings[areaIndex2] == null)
                                     {
+                                        //removed so it wont stop execution. 
                                         /*
                                         ThreadHelper.dispatcher.Dispatch(delegate
                                         {
@@ -211,9 +209,10 @@ namespace GrowableOverhaul
                                 }
                                 if (info.m_class.m_level > level)
                                 {
-                                    int areaIndex3 = GetAreaIndex2( info.m_class.m_service, info.m_class.m_subService, info.m_class.m_level - 1, info.m_cellWidth, info.m_cellLength, info.m_zoningMode);
+                                    int areaIndex3 = GetAreaIndex( info.m_class.m_service, info.m_class.m_subService, info.m_class.m_level - 1, info.m_cellWidth, info.m_cellLength, info.m_zoningMode);
                                     if (areaBuildings[areaIndex3] == null)
                                     {
+                                        // removed so it wont stop execution.
                                         /*
                                         ThreadHelper.dispatcher.Dispatch(delegate
                                         {
@@ -228,40 +227,13 @@ namespace GrowableOverhaul
                     }
                 }
             }
-            //Save private values
+
+            //Save private values via reflection. 
             SetBuildingsRefreshed(ref _this);
             SetAreaBuildings(ref _this, areaBuildings);
-
-            // Print test 
-            /*
-            var counter = 0;
-            foreach (var array in areaBuildings) {
-
-                if (array != null)
-                {
-                    Debug.Log("Index is: " + counter);
-
-                    foreach (var buildings in array)
-                    {  
-                        //Debug.Log("ID is: " + buildings);
-                        Debug.Log(PrefabCollection<BuildingInfo>.GetPrefab((uint)buildings).name);
-                    }
-                }
-                counter++;
-            }
-           
-            var index = GetAreaIndex2(ItemClass.Service.Residential, ItemClass.SubService.ResidentialLow, ItemClass.Level.Level2,
-
-                2, 2, BuildingInfo.ZoningMode.Straight);
-
-            Debug.Log("2x2 Test Area Index = " + index);
-
-            //L2 2x2 Detached05 AreaIndex is: 10386
-             */
-
-                            Debug.Log("End of AreaBuildings");
         }
 
+        //Reason for detour: This class returns the index for the array that contains the prefab groups. Needs to account for larger lots. 
         [RedirectMethod(true)]
         private static int GetAreaIndex(ItemClass.Service service, ItemClass.SubService subService, ItemClass.Level level, int width, int length, BuildingInfo.ZoningMode zoningMode)
         {
@@ -271,7 +243,7 @@ namespace GrowableOverhaul
             int num;
             if (privateSubServiceIndex != -1)
             {
-                // was 8
+                //modified from 8 to 16
                 num = 16 + privateSubServiceIndex;
             }
             else
@@ -281,89 +253,21 @@ namespace GrowableOverhaul
             num = (int)(num * 5 + level);
             if (zoningMode == BuildingInfo.ZoningMode.CornerRight)
             {
-                num = num * 8 + length - 1;
-                num = num * 8 + width - 1;
+                //modified to 8. 
+                num = num * 8 + length - 1; //was 4
+                num = num * 8 + width - 1; //was 4
                 num = num * 2 + 1;
             }
             else
             {
-                // old num = num * 4 + width - 1;
-                num = num * 8 + width - 1;
-                num = num * 8 + length - 1;
+                //modified to 8. 
+                num = num * 8 + width - 1; //was 4
+                num = num * 8 + length - 1; //was 4
                 num = (int)(num * 2 + zoningMode);
             }
             return num;
-        }
-
-
-        private static int GetAreaIndex2(ItemClass.Service service, ItemClass.SubService subService, ItemClass.Level level, int width, int length, BuildingInfo.ZoningMode zoningMode)
-        {
-            int privateSubServiceIndex = ItemClass.GetPrivateSubServiceIndex(subService);
-            int num;
-            if (privateSubServiceIndex != -1)
-            {
-                num = 16 + privateSubServiceIndex;
-            }
-            else
-            {
-                num = ItemClass.GetPrivateServiceIndex(service);
-            }
-            num = (int)(num * 5 + level);
-            if (zoningMode == BuildingInfo.ZoningMode.CornerRight)
-            {
-                num = num * 8 + length - 1;
-                num = num * 8 + width - 1;
-                num = num * 2 + 1;
-            }
-            else
-            {
-                // old num = num * 4 + width - 1;
-                num = num * 8 + width - 1;
-                num = num * 8 + length - 1;
-                num = (int)(num * 2 + zoningMode);
-            }
-            return num;
-        }
-
-        //[RedirectMethod(true)]
-        public static BuildingInfo GetRandomBuildingInfo(BuildingManager _this, ref Randomizer r, ItemClass.Service service, ItemClass.SubService subService, ItemClass.Level level, int width, int length, BuildingInfo.ZoningMode zoningMode, int style)
-        {
-            Debug.Log("GetRandom Detour Called");
-
-            int num = GetAreaIndex(service, subService, level, width, length, zoningMode);
-
-            Debug.Log("AreaIndex = " + num);
-
-            //FastList<ushort> fastList;
-            //FastList<ushort>[] areaBuildings = GetAreaBuildings(ref _this);
-
-            var values = GetAreaBuildings(ref _this);
-
-            var fastList = values[num];
-
-           // var counter = 0;
-            //foreach (var ID in fastList) {
-
-                //Debug.Log("ID is :" + fastList[counter]);
-               // counter++;
-            //}
-           
-            if (fastList == null)
-            {
-                Debug.Log("List is null");
-                return null;
-            }
-            if (fastList.m_size == 0)
-            {
-                Debug.Log("Size is 0");
-                return null;
-            }
-            //num = r.Int32((uint)fastList.m_size);
-
-            return PrefabCollection<BuildingInfo>.GetPrefab(fastList[0]);
         }
 
     }
-
 
 }

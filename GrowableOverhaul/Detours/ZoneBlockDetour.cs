@@ -2,6 +2,16 @@
 using ColossalFramework.Math;
 using GrowableOverhaul.Redirection;
 using UnityEngine;
+using System.Reflection;
+using PloppableRICO;
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using ColossalFramework.Plugins;
+using ColossalFramework.UI;
+using ICities;
+using UnityEngine;
 
 namespace GrowableOverhaul
 {
@@ -713,6 +723,15 @@ namespace GrowableOverhaul
             _this.m_shared = shared;
         }
 
+
+        private static bool ClearOccupiedZoning(BuildingInfo prefab, Building building)
+        {
+            Debug.Log("ClearOccupiedZoning Called for ZoneBlock");
+
+
+            return true;
+        }
+
         /// <summary>
         /// Marks cells colliding with buildings as occupied and removes the zoning if the building is plopable.
         /// </summary>
@@ -794,7 +813,7 @@ namespace GrowableOverhaul
             // Calculate which cells are colliding with the building
             ulong overlapCellMask = OverlapQuad(ref _this, buildingQuad);
 
-            if (info.m_buildingAI.ClearOccupiedZoning()) // for non-growables
+            if (ClearOccupiedZoning(info, building)) // for non-growables
             {
                 // set cells as occupied (use occupied2 mask)
                 occupied2 = occupied2 | overlapCellMask;

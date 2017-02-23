@@ -15,8 +15,6 @@ namespace GrowableOverhaul
         private bool created;
         private bool loaded;
 
-        private PrefabManager PrefabManager;
-
         public void OnCreated(ILoading loading)
         {
             Debug.Log("GrowableOverhaul OnCreated!");
@@ -31,8 +29,6 @@ namespace GrowableOverhaul
 
         public void OnLevelLoaded(LoadMode mode)
         {
-            //PrefabManager = new PrefabManager();
-            //PrefabManager.ConvertPrefab();
 
             Debug.Log("GrowableOverhaul OnLevelLoaded!");
 
