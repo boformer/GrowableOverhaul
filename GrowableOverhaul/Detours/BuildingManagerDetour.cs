@@ -48,7 +48,7 @@ namespace GrowableOverhaul
         {
 
         //clear array, and assign 10x larger array to hold larger values. Original was 3040. 
-           FastList<ushort>[] areaBuildings = new FastList<ushort>[30400];
+           FastList<ushort>[] areaBuildings = new FastList<ushort>[300000];
 
 
             for (int i = 0; i < infos.Length; i++)
@@ -59,7 +59,7 @@ namespace GrowableOverhaul
                     int privateServiceIndex = ItemClass.GetPrivateServiceIndex(info.m_class.m_service);
                     if (privateServiceIndex != -1)
                     {  //modified to account for 8 deep lots. 
-                        if (info.GetWidth() < 1 || info.GetWidth() > 8) //was 4
+                        if (info.GetWidth() < 1 || info.GetWidth() > 16) //was 4
                         {
                             //removed so it wont stop execution. 
                             /*
@@ -77,7 +77,7 @@ namespace GrowableOverhaul
                             continue;
 
                         }//modified to account for 8 deep lots. 
-                        else if (info.GetLength() < 1 || info.GetLength() > 8) //was 4
+                        else if (info.GetLength() < 1 || info.GetLength() > 16) //was 4
                         {
                             //removed so it wont stop execution. 
                             /*
@@ -116,16 +116,16 @@ namespace GrowableOverhaul
                 for (int k = 0; k < 5; k++)
                 {
                    //modified, original was 4
-                    for (int l = 0; l < 8; l++)
+                    for (int l = 0; l < 16; l++)
                     {
                         //modified, original was 4
-                        for (int m = 1; m < 8; m++)
+                        for (int m = 1; m < 16; m++)
                         {
                             //modified, original was 4
                             int num2 = j;
                             num2 = num2 * 5 + k;
-                            num2 = num2 * 8 + l; // was 4
-                            num2 = num2 * 8 + m; // was 4
+                            num2 = num2 * 16 + l; // was 4
+                            num2 = num2 * 16 + m; // was 4
                             num2 *= 2;
                             FastList<ushort> fastList = areaBuildings[num2];
                             FastList<ushort> fastList2 = areaBuildings[num2 - 2];
@@ -156,9 +156,9 @@ namespace GrowableOverhaul
                     int privateServiceIndex2 = ItemClass.GetPrivateServiceIndex(info.m_class.m_service);
                     if (privateServiceIndex2 != -1)
                     {//modified
-                        if (info.GetWidth() >= 1 && info.GetWidth() <= 8) //was 4
+                        if (info.GetWidth() >= 1 && info.GetWidth() <= 16) //was 4
                         {
-                            if (info.GetLength() >= 1 && info.GetLength() <= 8) //was 4
+                            if (info.GetLength() >= 1 && info.GetLength() <= 16) //was 4
                             {
                                 ItemClass.Level level = ItemClass.Level.Level1;
                                 ItemClass.Level level2 = ItemClass.Level.Level1;
@@ -244,7 +244,7 @@ namespace GrowableOverhaul
             if (privateSubServiceIndex != -1)
             {
                 //modified from 8 to 16
-                num = 16 + privateSubServiceIndex;
+                num = 32 + privateSubServiceIndex;
             }
             else
             {
@@ -254,15 +254,15 @@ namespace GrowableOverhaul
             if (zoningMode == BuildingInfo.ZoningMode.CornerRight)
             {
                 //modified to 8. 
-                num = num * 8 + length - 1; //was 4
-                num = num * 8 + width - 1; //was 4
+                num = num * 16 + length - 1; //was 4
+                num = num * 16 + width - 1; //was 4
                 num = num * 2 + 1;
             }
             else
             {
                 //modified to 8. 
-                num = num * 8 + width - 1; //was 4
-                num = num * 8 + length - 1; //was 4
+                num = num * 16 + width - 1; //was 4
+                num = num * 16 + length - 1; //was 4
                 num = (int)(num * 2 + zoningMode);
             }
             return num;

@@ -726,10 +726,27 @@ namespace GrowableOverhaul
 
         private static bool ClearOccupiedZoning(BuildingInfo prefab, Building building)
         {
-            Debug.Log("ClearOccupiedZoning Called for ZoneBlock");
+            //Debug.Log("ClearOccupiedZoning Called for ZoneBlock");
 
+            try {
+                if (prefab.m_buildingAI is PloppableResidential ||
+                    prefab.m_buildingAI is PloppableCommercial ||
+                    prefab.m_buildingAI is PloppableIndustrial ||
+                    prefab.m_buildingAI is PloppableExtractor ||
+                    prefab.m_buildingAI is PloppableOffice
+                    )
+                {
+                    return RICOBuildingManager.IsPlopped(building.m_buildIndex);
 
-            return true;
+                } else return prefab.m_buildingAI.ClearOccupiedZoning();
+            }
+            catch (Exception e)
+            {
+
+                Debug.LogException(e);
+                return prefab.m_buildingAI.ClearOccupiedZoning();
+            }
+
         }
 
         /// <summary>
@@ -1374,24 +1391,29 @@ namespace GrowableOverhaul
                         // TODO raise numbers and array size for 8x8 lot support
 
                         //if (roundedDistColumnDirection >= 0 && roundedDistColumnDirection <= 6 && (roundedDistRowDirection >= -6 && roundedDistRowDirection <= 6) old
-                        if (roundedDistColumnDirection >= 0 && roundedDistColumnDirection <= 15 && (roundedDistRowDirection >= -6 && roundedDistRowDirection <= 6)
+                        //Increase depth
+                        if (roundedDistColumnDirection >= 0 && roundedDistColumnDirection <= 15 && (roundedDistRowDirection >= -8 && roundedDistRowDirection <= 8)
+
                             // cells must be aligned in the same grid + 1% tolerance
                             && ((double)Mathf.Abs(distColumnDirection - (float)roundedDistColumnDirection) < 0.0125000001862645
                             && (double)Mathf.Abs(distRowDirection - (float)roundedDistRowDirection) < 0.0125000001862645
                             // must have road access or be behind one of the cells touching the road of the seed block 
                             // column == 0 means access to the road belonging to the zone block
                             // roundedDistColumnDirection != 0
+
                             && (column == 0 || roundedDistColumnDirection != 0)))
                         {
                             // Mark the cell in the column mask (in the row buffer array)
-                            xBuffer[roundedDistRowDirection + 6] |= 1 << roundedDistColumnDirection;
-                            //xBuffer[roundedDistRowDirection + 7] |= 1 << roundedDistColumnDirection;
+
+                            xBuffer[roundedDistRowDirection + 8] |= 1 << roundedDistColumnDirection; //increase to 8
+
+                            //xBuffer[roundedDistRowDirection + 6] |= 1 << roundedDistColumnDirection;
 
                             // If the column touches the road, also mark it in the second part of the int mask
                             if (column == 0)
                             {
-                                xBuffer[roundedDistRowDirection + 6] |= 1 << roundedDistColumnDirection + 16; // shift by 16 old
-                                //xBuffer[roundedDistRowDirection + 7] |= 1 << roundedDistColumnDirection + 16; // shift by 16
+                                xBuffer[roundedDistRowDirection + 8] |= 1 << roundedDistColumnDirection + 16; // shift by 16 old
+                                //xBuffer[roundedDistRowDirection + 6] |= 1 << roundedDistColumnDirection + 16; // shift by 16
                             }
                         }
                     }
@@ -1469,6 +1491,8 @@ namespace GrowableOverhaul
         [RedirectMethod(true)]
         public static void SimulationStep(ref ZoneBlock _this, ushort blockID)
         {
+            _this.RefreshZoning(blockID);
+
             ZoneManager zoneManager = Singleton<ZoneManager>.instance;
 
             // width of the zone block
@@ -1532,8 +1556,16 @@ namespace GrowableOverhaul
             // The masks are split into two 16-bit segments
             // The higher 16 bits store which columns have road access
             // The lower 16 bits store which columns are unoccupied
-            int[] xBuffer = zoneManager.m_tmpXBuffer; // TODO maybe use a bigger buffer?
-            for (int index = 0; index < 13; ++index) xBuffer[index] = 0; // reset the buffer
+
+            int[] RowBuffer = zoneManager.m_tmpXBuffer; // TODO maybe use a bigger buffer?
+
+
+            if (RowBuffer.Length == 13)
+            {
+                RowBuffer = new int[17];
+            }
+
+            for (int index = 0; index < 17; ++index) RowBuffer[index] = 0; // was 13
 
             // put the surrounding area of the seed cell into a quad
             // TODO maybe check a bigger area?
@@ -1550,8 +1582,8 @@ namespace GrowableOverhaul
 
             Quad2 seedPointAreaQuad = new Quad2
             {
-                a = positionXZ - 8f * columnDirection + ((float)seedRow - 14f) * rowDirection,
-                b = positionXZ + 6f * columnDirection + ((float)seedRow - 14f) * rowDirection,
+                a = positionXZ - 8f * columnDirection + ((float)seedRow - 20f) * rowDirection,
+                b = positionXZ + 6f * columnDirection + ((float)seedRow - 20f) * rowDirection,
                 c = positionXZ + 6f * columnDirection + ((float)seedRow + 5f) * rowDirection,
                 d = positionXZ - 8f * columnDirection + ((float)seedRow + 5f) * rowDirection
             };
@@ -1583,7 +1615,7 @@ namespace GrowableOverhaul
                             Mathf.Max((float)((double)otherPosition.x - (double)seedPointAreaMax.x - 46.0), (float)((double)otherPosition.z - (double)seedPointAreaMax.y - 46.0))) < 0.0)
                         {
                             // Checks if the other block intersects and extends this block (orthogonal) and marks unoccupied cells and cells with road access in the XBuffer
-                            CheckBlock(ref _this, otherBlockID, ref zoneManager.m_blocks.m_buffer[(int)otherBlockID], xBuffer, zone, seedCellMiddlePosition, columnDirection, rowDirection, seedPointAreaQuad);
+                            CheckBlock(ref _this, otherBlockID, ref zoneManager.m_blocks.m_buffer[(int)otherBlockID], RowBuffer, zone, seedCellMiddlePosition, columnDirection, rowDirection, seedPointAreaQuad);
                         }
 
                         // next zone block in grid cell (linked list)
@@ -1597,9 +1629,12 @@ namespace GrowableOverhaul
                     }
                 }
             }
-            for (int row = 0; row < 13; ++row)
+
+            //Loop through all rows and check depth
+
+            for (int row = 0; row < 17; ++row) //was 13
             {
-                uint columnMask = (uint)xBuffer[row];
+                uint columnMask = (uint)RowBuffer[row];
                 int columnCount = 0; // counts the unoccupied columns
 
                 // check if the first the 2 cells in the column have road access
@@ -1653,52 +1688,17 @@ namespace GrowableOverhaul
                     else columnCount = 8;
 
                 }
-                if (columnCount == 9)
+                if (columnCount >= 9)
                 {
-                    columnCount = 4 | 131072;
+                    columnCount = columnCount | 131072;
 
                 }
-                if (columnCount == 10)
-                {
-                    columnCount = 5 | 131072;
-
-                }
-                if (columnCount == 11)
-                {
-                    columnCount = 5 | 131072;
-                }
-                if (columnCount == 12)
-                {
-                    columnCount = 6 | 131072;
-                }
-                if (columnCount == 13)
-                {
-                    columnCount = 6 | 131072;
-                }
-                if (columnCount == 14)
-                {
-                    columnCount = 7 | 131072;
-                }
-                if (columnCount == 15)
-                {
-                    columnCount = 7 | 131072;
-                }
-
-                if (columnCount == 16)
-                {
-                    columnCount = 7 | 131072;
-                }
-
-                else if (columnCount == 17)
-                {
-
-                    columnCount = 8 | 131072;
-                }
-
-
+               
 
                 //Debug.Log("Shortened ColumnCount = " + columnCount);
+
                 // TODO add support for larger lots! (8,9,10,11,12,13,14,15)
+
                 if (cornerRoadAccess)
                 {
                     // set corner flag
@@ -1707,17 +1707,18 @@ namespace GrowableOverhaul
                 }
 
                 // store result in buffer
-                xBuffer[row] = columnCount;
+                RowBuffer[row] = columnCount;
             }
 
             // use bitmask to read depth at seed row
             // 0000 0000 0000 0000 1111 1111 1111 1111 
             //int targetColumnCount = xBuffer[6] & 65535; old
 
-            int targetColumnCount = xBuffer[6] & 65535;
+            //old was 6, seed row is now 8
+            int SeedRow = RowBuffer[8] & 65535;
 
             // all columns at seed row occupied? bad seed row!
-            if (targetColumnCount == 0) return;
+            if (SeedRow == 0) return;
 
             // checks if there is electricity available
             bool isGoodPlace = IsGoodPlace(ref _this, seedCellMiddlePosition);
@@ -1745,8 +1746,9 @@ namespace GrowableOverhaul
             // STEP 1: this calculates a left and right row range for the building to spawn
             else
             {
-                int calculatedLeftRow = 6;
-                int calculatedRightRow = 6;
+                //old was 6
+                int LeftRowRange = 8;
+                int RightRowRange = 8;
                 bool firstTry = true;
 
                 // search loop for plot size finding
@@ -1757,42 +1759,61 @@ namespace GrowableOverhaul
                     if (firstTry) // in first try search for exact matching rows
                     {
                         // search for rows left and right of seed row with a similar depth
-                        while (calculatedLeftRow != 0 && (xBuffer[calculatedLeftRow - 1] & 65535) == targetColumnCount)
-                            --calculatedLeftRow;
-                        while (calculatedRightRow != 12 && (xBuffer[calculatedRightRow + 1] & 65535) == targetColumnCount)
-                            ++calculatedRightRow;
+                        while (LeftRowRange != 0 && (RowBuffer[LeftRowRange - 1] & 65535) == SeedRow)
+
+                            //Decrease 
+                            --LeftRowRange;
+
+                        //old was 12
+                        while (RightRowRange != 16 && (RowBuffer[RightRowRange + 1] & 65535) == SeedRow)
+
+                            //Increase
+                            ++RightRowRange;
                     }
                     else // in the second/third try search for any matching rows
                     {
                         // search for rows left and right of seed row with a similar or larger depth
-                        while (calculatedLeftRow != 0 && (xBuffer[calculatedLeftRow - 1] & 65535) >= targetColumnCount)
-                            --calculatedLeftRow;
-                        while (calculatedRightRow != 12 && (xBuffer[calculatedRightRow + 1] & 65535) >= targetColumnCount)
-                            ++calculatedRightRow;
+                        while (LeftRowRange != 0 && (RowBuffer[LeftRowRange - 1] & 65535) >= SeedRow)
+
+                            --LeftRowRange;
+                        //old was 12
+                        while (RightRowRange != 16 && (RowBuffer[RightRowRange + 1] & 65535) >= SeedRow)
+
+                            ++RightRowRange;
                     }
 
-                    int extraLeftRange = calculatedLeftRow;
-                    int extraRightRange = calculatedRightRow;
+                    int extraLeftRange = LeftRowRange;
+                    int extraRightRange = RightRowRange;
+
                     // search for further rows with a min depth of 2
-                    while (extraLeftRange != 0 && (xBuffer[extraLeftRange - 1] & 65535) >= 2)
+                    while (extraLeftRange != 0 && (RowBuffer[extraLeftRange - 1] & 65535) >= 2)
+
                         --extraLeftRange;
-                    while (extraRightRange != 12 && (xBuffer[extraRightRange + 1] & 65535) >= 2)
+
+                    //old was 12
+                    while (extraRightRange != 16 && (RowBuffer[extraRightRange + 1] & 65535) >= 2)
+
                         ++extraRightRange;
 
                     // checks if a exactly one single extra row with min depth of 2 was found
+
                     // if that is the case, the algorithm will try to preserve space on that side so a 2 cells width building can fit
-                    bool exactlyOneRowLeftFound = extraLeftRange != 0 && extraLeftRange == calculatedLeftRow - 1;
-                    bool exactlyOneRowRightFound = extraRightRange != 12 && extraRightRange == calculatedRightRow + 1;
+
+                    bool exactlyOneRowLeftFound = extraLeftRange != 0 && extraLeftRange == LeftRowRange - 1;
+
+                    //old was 12
+                    bool exactlyOneRowRightFound = extraRightRange != 16 && extraRightRange == RightRowRange + 1;
 
                     // 1-cell space found on both sides
+
                     // goal: preserve space on both sides
                     if (exactlyOneRowLeftFound && exactlyOneRowRightFound)
                     {
                         // if 3 or less regular rows found
-                        if (calculatedRightRow - calculatedLeftRow <= 2)
+                        if (RightRowRange - LeftRowRange <= 2)
                         {
-                            // if target depth 2 or less
-                            if (targetColumnCount <= 2)
+                            // if seed row is only 1 or 2 deep. 
+                            if (SeedRow <= 2)
                             {
                                 if (!firstTry) // if second try
                                 {
@@ -1806,7 +1827,7 @@ namespace GrowableOverhaul
                             else
                             {
                                 // decrease target depth by one
-                                --targetColumnCount;
+                                --SeedRow;
 
                                 // --> search again (exact mode off)
                             }
@@ -1824,10 +1845,10 @@ namespace GrowableOverhaul
                     else if (exactlyOneRowLeftFound)
                     {
                         // if 2 or less regular rows found
-                        if (calculatedRightRow - calculatedLeftRow <= 1)
+                        if (RightRowRange - LeftRowRange <= 1)
                         {
                             // if target depth 2 or less
-                            if (targetColumnCount <= 2)
+                            if (SeedRow <= 2)
                             {
                                 if (!firstTry) // if second try
                                 {
@@ -1840,7 +1861,7 @@ namespace GrowableOverhaul
                             else
                             {
                                 // decrease target depth by one
-                                --targetColumnCount;
+                                --SeedRow;
 
                                 // --> search again (exact mode off)
                             }
@@ -1858,10 +1879,10 @@ namespace GrowableOverhaul
                     else if (exactlyOneRowRightFound)
                     {
                         // if 2 or less regular rows found
-                        if (calculatedRightRow - calculatedLeftRow <= 1)
+                        if (RightRowRange - LeftRowRange <= 1)
                         {
                             // if target depth 2 or less
-                            if (targetColumnCount <= 2)
+                            if (SeedRow <= 2)
                             {
                                 if (!firstTry) // if second try
                                 {
@@ -1872,7 +1893,7 @@ namespace GrowableOverhaul
                             else
                             {
                                 // decrease target depth by one
-                                --targetColumnCount;
+                                --SeedRow;
 
                                 // --> search again (exact mode off)
                             }
@@ -1887,10 +1908,10 @@ namespace GrowableOverhaul
                     }
                     // only one row found
                     // we don't want 1-cell wide buildings!
-                    else if (calculatedLeftRow == calculatedRightRow)
+                    else if (LeftRowRange == RightRowRange)
                     {
                         // if target depth 2 or less
-                        if (targetColumnCount <= 2)
+                        if (SeedRow <= 2)
                         {
                             if (!firstTry) // if second try
                             {
@@ -1902,7 +1923,7 @@ namespace GrowableOverhaul
                         // if target depth is at least 3 (but only 1 row found)
                         else
                         {
-                            --targetColumnCount;
+                            --SeedRow;
 
                             // --> search again (exact mode off)
                         }
@@ -1918,117 +1939,135 @@ namespace GrowableOverhaul
 
                 // fix 1-cell space on both sides
                 // selectRandomRowsPreserveBoth:
-                ++calculatedLeftRow;
-                --calculatedRightRow;
+                ++LeftRowRange;
+                --RightRowRange;
                 goto selectRandomRows;
 
                 // fix 1-cell space on left side
                 selectRandomRowsPreserveL:
-                ++calculatedLeftRow;
+                ++LeftRowRange;
                 goto selectRandomRows;
 
                 // fix 1-cell space on right side
                 selectRandomRowsPreserveR:
-                --calculatedRightRow;
+                --RightRowRange;
 
                 // NEXT STEP: Create an alternative randomized row range for the building to spawn
                 // (alternative width and spawn position)
                 // Goal: Leave no small gaps
+
+
+                //This cuts down the total width. 
                 selectRandomRows:
 
+                Debug.Log("Total range width is: " + (RightRowRange - LeftRowRange));
+
                 // the randomized row values
-                int randomozedLeftRow;
-                int randomizedRightRow;
+                int randomLeftRowRange;
+                int randomRightRange;
 
                 // if only one cell deep, but 2 or more cells wide
+
                 // select one of the rows and set the width to 1
-                if (targetColumnCount == 1 && calculatedRightRow - calculatedLeftRow >= 1)
+
+                //if its only a 1 deep building....
+                if (SeedRow == 1 && RightRowRange - LeftRowRange >= 1)
                 {
                     // select a random row in the valid range
-                    calculatedLeftRow += Singleton<SimulationManager>.instance.m_randomizer.Int32((uint)(calculatedRightRow - calculatedLeftRow));
-                    calculatedRightRow = calculatedLeftRow + 1;
-                    randomozedLeftRow = calculatedLeftRow + Singleton<SimulationManager>.instance.m_randomizer.Int32(2U);
-                    randomizedRightRow = randomozedLeftRow;
+                    LeftRowRange += Singleton<SimulationManager>.instance.m_randomizer.Int32((uint)(RightRowRange - LeftRowRange));
+                    RightRowRange = LeftRowRange + 1;
+                    randomLeftRowRange = LeftRowRange + Singleton<SimulationManager>.instance.m_randomizer.Int32(2U);
+                    randomRightRange = randomLeftRowRange;
                 }
+                //Anything larger then 1 deep, do this...
                 else
                 {
                     do
                     {
-                        randomozedLeftRow = calculatedLeftRow;
-                        randomizedRightRow = calculatedRightRow;
-                        if (calculatedRightRow - calculatedLeftRow == 2) // 3 cells wide
+                        randomLeftRowRange = LeftRowRange;
+                        randomRightRange = RightRowRange;
+
+                        if (RightRowRange - LeftRowRange == 2) // 3 cells wide
                         {
                             // coin toss: reduce width by 1 (taking only from one side)
                             if (Singleton<SimulationManager>.instance.m_randomizer.Int32(2U) == 0)
-                                --randomizedRightRow;
+                                --randomRightRange;
                             else
-                                ++randomozedLeftRow;
+                                ++randomLeftRowRange;
                         }
-                        else if (calculatedRightRow - calculatedLeftRow == 3) // 4 cells wide
+                        else if (RightRowRange - LeftRowRange == 3) // 4 cells wide  
                         {
                             // coin toss: reduce width by 2 (taking only from one side)
                             if (Singleton<SimulationManager>.instance.m_randomizer.Int32(2U) == 0)
-                                randomizedRightRow -= 2;
+
+                                randomRightRange -= 2;
                             else
-                                randomozedLeftRow += 2;
+                                randomLeftRowRange += 2;
+
                         }
-                        else if (calculatedRightRow - calculatedLeftRow == 4) // 5 cells wide
+                        else if (RightRowRange - LeftRowRange == 4) // 5 cells wide
                         {
                             // coin toss: reduce width by 2 from one side and 3 from the other
                             if (Singleton<SimulationManager>.instance.m_randomizer.Int32(2U) == 0)
                             {
-                                calculatedRightRow -= 2;
-                                randomizedRightRow -= 3;
+                                //RightRowRange -= 2;
+                                randomRightRange -= 3;
                             }
                             else
                             {
-                                calculatedLeftRow += 2;
-                                randomozedLeftRow += 3;
+                                //LeftRowRange += 2;
+                                randomLeftRowRange += 3;
                             }
                         }
-                        else if (calculatedRightRow - calculatedLeftRow == 5) // 6 cells wide
+                        else if (RightRowRange - LeftRowRange == 5) // 6 cells wide
                         {
                             // coin toss: reduce width by 2 from one side and 3 from the other
                             if (Singleton<SimulationManager>.instance.m_randomizer.Int32(2U) == 0)
                             {
-                                calculatedRightRow -= 3;
-                                randomizedRightRow -= 2;
+                                //RightRowRange -= 3;
+                                randomRightRange -= 2;
                             }
                             else
                             {
-                                calculatedLeftRow += 3;
-                                randomozedLeftRow += 2;
+                                //LeftRowRange += 3;
+                                randomLeftRowRange += 2;
                             }
                         }
-                        else if (calculatedRightRow - calculatedLeftRow >= 6) // 7 cells wide
+                        else if (RightRowRange - LeftRowRange >= 6) // 7 cells wide
                         {
                             // check if one range is far away from seed point
                             // reduce width by 2 from that side, also reduce that range by 3
-                            if (calculatedLeftRow == 0 || calculatedRightRow == 12)
+                           
+                           
+                            if (LeftRowRange == 0 || RightRowRange == 15) //was 12
                             {
-                                if (calculatedLeftRow == 0)
+                                /*
+                                if (LeftRowRange == 0)
                                 {
-                                    calculatedLeftRow = 3;
-                                    randomozedLeftRow = 2;
+                                    LeftRowRange = 4; //3
+                                    randomozedLeftRow = 3;//2
                                 }
-                                if (calculatedRightRow == 12)
+                                if (RightRowRange == 15) //old 12
                                 {
-                                    calculatedRightRow = 9;
-                                    randomizedRightRow = 10;
+                                    RightRowRange = 11; // old 9
+                                    randomizedRightRow = 12; // old 10
+
                                 }
+                                */
+                                
                             }
 
-                            // otherwise:
-                            // coin toss: reduce width by 2 from one side and 3 from the other
-                            else if (Singleton<SimulationManager>.instance.m_randomizer.Int32(2U) == 0)
+                        // otherwise:
+                        // coin toss: reduce width by 2 from one side and 3 from the other
+                        else if (Singleton<SimulationManager>.instance.m_randomizer.Int32(2U) == 0)
                             {
-                                calculatedRightRow = calculatedLeftRow + 3;
-                                randomizedRightRow = randomozedLeftRow + 2;
+                                //RightRowRange = LeftRowRange + 3;
+                                randomRightRange = randomLeftRowRange + 2;
                             }
                             else
                             {
-                                calculatedLeftRow = calculatedRightRow - 3;
-                                randomozedLeftRow = randomizedRightRow - 2;
+                                //LeftRowRange = RightRowRange - 3;
+                                randomLeftRowRange = randomRightRange - 2;
                             }
                         }
                     }
@@ -2036,82 +2075,92 @@ namespace GrowableOverhaul
                     // do this while the selected width or the width range are greater than 4
                     // TODO this needs to be changed to 8
                     //while (calculatedRightRow - calculatedLeftRow > 3 || randomizedRightRow - randomozedLeftRow > 3);
-                    while (calculatedRightRow - calculatedLeftRow > 7 || randomizedRightRow - randomozedLeftRow > 7);
+
+                    //Now reduntant. No need to clamp lot widths. Let it try to spawn 16 wide if thats what it finds!
+                    while (RightRowRange - LeftRowRange > 17 || randomRightRange - randomLeftRowRange > 17);
                 }
 
 
                 // STEP 3: Calculate final position, width, depth and zoning mode based on calculated row range
                 //int calculatedDepth = 4; old
-                int calculatedDepth = 16;
-                int calculatedWidth = calculatedRightRow - calculatedLeftRow + 1;
+
+                System.Random rnd = new System.Random();
+
+                //int calculatedDepth = 16;
+
+                int calculatedDepth = rnd.Next(4, 16);
+
+                int calculatedWidth = RightRowRange - LeftRowRange + 1;
+
+                Debug.Log("calculatedWidth after cut down is: " + calculatedWidth);
+
                 BuildingInfo.ZoningMode calculatedZoningMode = BuildingInfo.ZoningMode.Straight;
 
                 // stores if there is reserve space for a higher depth
                 bool calculatedSpaceBehindAllColumns = true;
 
-                for (int row = calculatedLeftRow; row <= calculatedRightRow; ++row)
+                for (int row = LeftRowRange; row <= RightRowRange; ++row)
                 {
                     // calculate the maximum possible depth in the range
-                    calculatedDepth = Mathf.Min(calculatedDepth, xBuffer[row] & 65535);
-                    if ((xBuffer[row] & 131072) == 0) // check for depth shortened flag
+                    calculatedDepth = Mathf.Min(calculatedDepth, RowBuffer[row] & 65535);
+                    if ((RowBuffer[row] & 131072) == 0) // check for depth shortened flag
                     {
                         calculatedSpaceBehindAllColumns = false;
                     }
                 }
 
-                if (calculatedRightRow > calculatedLeftRow) // width at least 2
+                if (RightRowRange > LeftRowRange) // width at least 2
                 {
                     // check for left corner flag
-                    if ((xBuffer[calculatedLeftRow] & 65536) != 0)
+                    if ((RowBuffer[LeftRowRange] & 65536) != 0)
                     {
                         // move building to left side, set corner mode
                         calculatedZoningMode = BuildingInfo.ZoningMode.CornerLeft;
-                        randomizedRightRow = calculatedLeftRow + randomizedRightRow - randomozedLeftRow;
-                        randomozedLeftRow = calculatedLeftRow;
+                        randomRightRange = LeftRowRange + randomRightRange - randomLeftRowRange;
+                        randomLeftRowRange = LeftRowRange;
                     }
 
                     // check for right corner flag (coin toss if left corner flag found)
-                    if ((xBuffer[calculatedRightRow] & 65536) != 0 && (calculatedZoningMode != BuildingInfo.ZoningMode.CornerLeft || Singleton<SimulationManager>.instance.m_randomizer.Int32(2U) == 0))
+                    if ((RowBuffer[RightRowRange] & 65536) != 0 && (calculatedZoningMode != BuildingInfo.ZoningMode.CornerLeft || Singleton<SimulationManager>.instance.m_randomizer.Int32(2U) == 0))
                     {
                         // move building to right side, set corner mode
                         calculatedZoningMode = BuildingInfo.ZoningMode.CornerRight;
-                        randomozedLeftRow = calculatedRightRow + randomozedLeftRow - randomizedRightRow;
-                        randomizedRightRow = calculatedRightRow;
+                        randomLeftRowRange = RightRowRange + randomLeftRowRange - randomRightRange;
+                        randomRightRange = RightRowRange;
                     }
                 }
 
                 // STEP 4: Calculate final position, width, depth and zoning mode based on randomized row range
 
-                //int randomizedDepth = 4; old
+                int randomizedDepth = rnd.Next(5, 13);
+                //int randomizedDepth = 16;
 
-                int randomizedDepth = 4;
-
-                int randomizedWidth = randomizedRightRow - randomozedLeftRow + 1;
+                int randomizedWidth = randomRightRange - randomLeftRowRange + 1;
                 BuildingInfo.ZoningMode randomizedZoningMode = BuildingInfo.ZoningMode.Straight;
 
                 // stores if there is reserve space for a higher depth
                 bool randomizedSpaceBehindAllColumns = true;
 
-                for (int row = randomozedLeftRow; row <= randomizedRightRow; ++row)
+                for (int row = randomLeftRowRange; row <= randomRightRange; ++row)
                 {
                     // calculate the maximum possible depth in the range
-                    randomizedDepth = Mathf.Min(randomizedDepth, xBuffer[row] & (int)ushort.MaxValue);
+                    randomizedDepth = Mathf.Min(randomizedDepth, RowBuffer[row] & (int)ushort.MaxValue);
 
-                    if ((xBuffer[row] & 131072) == 0) // check for depth shortened flag
+                    if ((RowBuffer[row] & 131072) == 0) // check for depth shortened flag
                     {
                         randomizedSpaceBehindAllColumns = false;
                     }
                 }
-                if (randomizedRightRow > randomozedLeftRow) // width at least 2
+                if (randomRightRange > randomLeftRowRange) // width at least 2
                 {
                     // check for left corner flag
-                    if ((xBuffer[randomozedLeftRow] & 65536) != 0)
+                    if ((RowBuffer[randomLeftRowRange] & 65536) != 0)
                     {
                         randomizedZoningMode = BuildingInfo.ZoningMode.CornerLeft; // set corner mode
                     }
 
                     // check for right corner flag (coin toss if left corner flag found)
-                    if ((xBuffer[randomizedRightRow] & 65536) != 0 && (randomizedZoningMode != BuildingInfo.ZoningMode.CornerLeft || Singleton<SimulationManager>.instance.m_randomizer.Int32(2U) == 0))
+                    if ((RowBuffer[randomRightRange] & 65536) != 0 && (randomizedZoningMode != BuildingInfo.ZoningMode.CornerLeft || Singleton<SimulationManager>.instance.m_randomizer.Int32(2U) == 0))
                     {
                         randomizedZoningMode = BuildingInfo.ZoningMode.CornerRight; // set corner mode
                     }
@@ -2169,7 +2218,7 @@ namespace GrowableOverhaul
                         case 0: //corner, calculated
                             if (calculatedZoningMode != BuildingInfo.ZoningMode.Straight)
                             {
-                                finalSpawnRowDouble = calculatedLeftRow + calculatedRightRow + 1;
+                                finalSpawnRowDouble = LeftRowRange + RightRowRange + 1;
                                 finalDepth = calculatedDepth;
                                 finalWidth = calculatedWidth;
                                 finalZoningMode = calculatedZoningMode;
@@ -2180,7 +2229,7 @@ namespace GrowableOverhaul
                         case 1: //corner, randomized
                             if (randomizedZoningMode != BuildingInfo.ZoningMode.Straight)
                             {
-                                finalSpawnRowDouble = randomozedLeftRow + randomizedRightRow + 1;
+                                finalSpawnRowDouble = randomLeftRowRange + randomRightRange + 1;
                                 finalDepth = randomizedDepth;
                                 finalWidth = randomizedWidth;
                                 finalZoningMode = randomizedZoningMode;
@@ -2191,7 +2240,7 @@ namespace GrowableOverhaul
                         case 2: //corner, calculated, limited depth
                             if (calculatedZoningMode != BuildingInfo.ZoningMode.Straight && calculatedDepth >= 4)
                             {
-                                finalSpawnRowDouble = calculatedLeftRow + calculatedRightRow + 1;
+                                finalSpawnRowDouble = LeftRowRange + RightRowRange + 1;
                                 finalDepth = !calculatedSpaceBehindAllColumns ? 2 : 3; // prevent 1-cell gaps
                                 finalWidth = calculatedWidth;
                                 finalZoningMode = calculatedZoningMode;
@@ -2202,7 +2251,7 @@ namespace GrowableOverhaul
                         case 3: //corner, randomized, limited depth
                             if (randomizedZoningMode != BuildingInfo.ZoningMode.Straight && randomizedDepth >= 4)
                             {
-                                finalSpawnRowDouble = randomozedLeftRow + randomizedRightRow + 1;
+                                finalSpawnRowDouble = randomLeftRowRange + randomRightRange + 1;
                                 finalDepth = !randomizedSpaceBehindAllColumns ? 2 : 3; // prevent 1-cell gaps
                                 finalWidth = randomizedWidth;
                                 finalZoningMode = randomizedZoningMode;
@@ -2211,13 +2260,13 @@ namespace GrowableOverhaul
                             else
                                 break;
                         case 4: // straight, calculated
-                            finalSpawnRowDouble = calculatedLeftRow + calculatedRightRow + 1;
+                            finalSpawnRowDouble = LeftRowRange + RightRowRange + 1;
                             finalDepth = calculatedDepth;
                             finalWidth = calculatedWidth;
                             finalZoningMode = BuildingInfo.ZoningMode.Straight;
                             goto default;
                         case 5: // straight, randomized
-                            finalSpawnRowDouble = randomozedLeftRow + randomizedRightRow + 1;
+                            finalSpawnRowDouble = randomLeftRowRange + randomRightRange + 1;
                             finalDepth = randomizedDepth;
                             finalWidth = randomizedWidth;
                             finalZoningMode = BuildingInfo.ZoningMode.Straight;
@@ -2226,7 +2275,8 @@ namespace GrowableOverhaul
                             // calculate building spawn position (plot center)
                             buildingSpawnPos = _this.m_position + VectorUtils.X_Y(
                                 (float)((double)finalDepth * 0.5 - 4.0) * columnDirection +
-                                (float)((double)finalSpawnRowDouble * 0.5 + ((double)seedRow - 6) - 4) * rowDirection);
+                                (float)((double)finalSpawnRowDouble * 0.5 + ((double)seedRow - 8) - 4) * rowDirection); //old 6
+
 
                             // industrial specialisations
                             if (zone == ItemClass.Zone.Industrial)
@@ -2247,16 +2297,8 @@ namespace GrowableOverhaul
 
                             Debug.Log("FinalDepth = " + finalDepth + " FinalWidth = " + finalWidth);
 
-                            /*
-                            if (finalDepth >= 5)
-                            {
-                                info = PrefabCollection<BuildingInfo>.FindLoaded(finalWidth + "x" + finalDepth + "ResTest_Data");
-                            }
-
-                            else {
-                            */
-                                info = Singleton<BuildingManager>.instance.GetRandomBuildingInfo(ref Singleton<SimulationManager>.instance.m_randomizer, service, subService, level, finalWidth, finalDepth, finalZoningMode, 0);
-                            // }
+                            info = Singleton<BuildingManager>.instance.GetRandomBuildingInfo(ref Singleton<SimulationManager>.instance.m_randomizer, service, subService, level, finalWidth, finalDepth, finalZoningMode, 0);
+                   
 
                             //Debug.Log(info.name);
                             // no building found? go back to switch statement and use different calculations
