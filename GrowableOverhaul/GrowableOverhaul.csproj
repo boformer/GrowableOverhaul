@@ -36,6 +36,9 @@
     <Reference Include="Assembly-CSharp">
       <HintPath>..\..\NetworkSkins\libs\Assembly-CSharp.dll</HintPath>
     </Reference>
+    <Reference Include="BuildingThemes">
+      <HintPath>..\..\..\AppData\Local\Colossal Order\Cities_Skylines\Addons\Mods\BuildingThemes\BuildingThemes.dll</HintPath>
+    </Reference>
     <Reference Include="ColossalManaged">
       <HintPath>..\..\NetworkSkins\libs\ColossalManaged.dll</HintPath>
     </Reference>
@@ -54,6 +57,8 @@
     <Compile Include="Detours\BuildingDetour.cs" />
     <Compile Include="Detours\BuildingManagerDetour.cs" />
     <Compile Include="Detours\BuildingToolDetour.cs" />
+    <Compile Include="Detours\ZoningPanelDetour.cs" />
+    <Compile Include="ExtendedItemClass.cs" />
     <Compile Include="InputThreadingExtension.cs" />
     <Compile Include="LoadingExtension.cs" />
     <Compile Include="Detours\NetManagerDetour.cs" />

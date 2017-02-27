@@ -4,6 +4,7 @@ using System.Reflection;
 using GrowableOverhaul.Redirection;
 using ICities;
 using UnityEngine;
+using ColossalFramework.UI;
 
 namespace GrowableOverhaul
 {
@@ -29,6 +30,19 @@ namespace GrowableOverhaul
 
         public void OnLevelLoaded(LoadMode mode)
         {
+
+
+            var uiView = UIView.GetAView();
+            var refButton = new UIButton();
+
+            refButton = uiView.FindUIComponent<UIButton>("ResidentialLow");
+
+
+
+            GameObject.Destroy(refButton.gameObject);
+
+            //ZoningPanel.
+
 
             Debug.Log("GrowableOverhaul OnLevelLoaded!");
 

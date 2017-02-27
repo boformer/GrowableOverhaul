@@ -13,6 +13,8 @@ using ColossalFramework.UI;
 using ICities;
 using UnityEngine;
 
+using BuildingThemes;
+
 namespace GrowableOverhaul
 {
     [TargetType(typeof(ZoneBlock))]
@@ -601,11 +603,11 @@ namespace GrowableOverhaul
                                             // if the cell is unzoned, take over the zone type of the other one
                                             if ((double)cellMiddleDist < 36.0 && column < 8 && otherColumn < 8) // modifed 4 --> 8
                                             {
-                                                ItemClass.Zone zone1 = GetZoneDeep(ref _this, blockID, column, row);
-                                                ItemClass.Zone zone2 = GetZoneDeep(ref other, otherBlockID, otherColumn, otherRow);
-                                                if (zone1 == ItemClass.Zone.Unzoned)
+                                                ExtendedItemClass.Zone zone1 = GetZoneDeep(ref _this, blockID, column, row);
+                                                ExtendedItemClass.Zone zone2 = GetZoneDeep(ref other, otherBlockID, otherColumn, otherRow);
+                                                if (zone1 == ExtendedItemClass.Zone.Unzoned)
                                                     SetZoneDeep(ref _this, blockID, column, row, zone2);
-                                                else if (zone2 == ItemClass.Zone.Unzoned && !deleted)
+                                                else if (zone2 == ExtendedItemClass.Zone.Unzoned && !deleted)
                                                     SetZoneDeep(ref other, otherBlockID, otherColumn, otherRow, zone1);
                                             }
                                         }
@@ -1104,14 +1106,14 @@ namespace GrowableOverhaul
         {
             // Calling this method should be avoided! Use SetZoneDeep instead
 
-            return SetZoneDeep(ref _this, FindBlockId(ref _this), x, z, zone);
+            return SetZoneDeep(ref _this, FindBlockId(ref _this), x, z, (ExtendedItemClass.Zone)zone);
         }
 
-        public static bool SetZoneDeep(ref ZoneBlock _this, ushort blockID, int x, int z, ItemClass.Zone zone)
+        
+        public static bool SetZoneDeep(ref ZoneBlock _this, ushort blockID, int x, int z, ExtendedItemClass.Zone zone)
         {
-            if (zone == ItemClass.Zone.Distant)
-            {
-                zone = ItemClass.Zone.Unzoned;
+            if (zone == ExtendedItemClass.Zone.Distant)
+            {                zone = ExtendedItemClass.Zone.Unzoned;
             }
             // 0000 0000 0000 0000 0000 0000 00zz zx00
             // 0|0, 2|0 --> 0
@@ -1184,23 +1186,26 @@ namespace GrowableOverhaul
         {
             // Calling this method should be avoided! Use GetZoneDeep instead
 
-            return GetZoneDeep(ref _this, FindBlockId(ref _this), x, z);
+            return (ItemClass.Zone)GetZoneDeep(ref _this, FindBlockId(ref _this), x, z);
         }
 
-        public static ItemClass.Zone GetZoneDeep(ref ZoneBlock _this, ushort blockID, int x, int z)
+        public static ExtendedItemClass.Zone GetZoneDeep(ref ZoneBlock _this, ushort blockID, int x, int z)
         {
-            if(x >= ZoneBlockDetour.GetColumnCount(ref _this)) return ItemClass.Zone.Distant;
+
+            //Needs to be tweaked to return new zone types. Rather than cast to zone type, perhaps just return the ulong?
+
+            if(x >= ZoneBlockDetour.GetColumnCount(ref _this)) return ExtendedItemClass.Zone.Distant;
 
             int num = z << 3 | (x & 1) << 2;
 
-            if (x < 2) return (ItemClass.Zone)(_this.m_zone1 >> num & 15L);
-            else if (x < 4) return (ItemClass.Zone)(_this.m_zone2 >> num & 15L);
+            if (x < 2) return (ExtendedItemClass.Zone)(_this.m_zone1 >> num & 15L);
+            else if (x < 4) return (ExtendedItemClass.Zone)(_this.m_zone2 >> num & 15L);
 
             // --- support for deeper zones ---
-            else if (x < 6 && DataExtension.zones3 != null) return (ItemClass.Zone)(DataExtension.zones3[blockID] >> num & 15L);
-            else if (x < 8 && DataExtension.zones4 != null) return (ItemClass.Zone)(DataExtension.zones4[blockID] >> num & 15L);
+            else if (x < 6 && DataExtension.zones3 != null) return (ExtendedItemClass.Zone)(DataExtension.zones3[blockID] >> num & 15L);
+            else if (x < 8 && DataExtension.zones4 != null) return (ExtendedItemClass.Zone)(DataExtension.zones4[blockID] >> num & 15L);
 
-            return ItemClass.Zone.Distant;
+            return ExtendedItemClass.Zone.Distant;
         }
 
         /// <summary>
@@ -1289,7 +1294,7 @@ namespace GrowableOverhaul
                     {
                         bool occupied = (occupiedMask & bitOfOuterColumn) != 0UL; // is cell occupied?
                         int column2 = column;
-                        ItemClass.Zone zone = !isAssetEditor ? GetZoneDeep(ref _this, blockID, column, row2) : ItemClass.Zone.ResidentialLow;
+                        ExtendedItemClass.Zone zone = !isAssetEditor ? GetZoneDeep(ref _this, blockID, column, row2) : ExtendedItemClass.Zone.ResidentialLow;
 
                         // calculate relative position between previous column and current column
                         Vector2 columnPreviousLength = ((float)column - 4f) * columnDirection;
@@ -1313,7 +1318,8 @@ namespace GrowableOverhaul
                         // Send zone cell to rendering pipeline
                         TerrainModify.ApplyQuad(positionXZ + columnPreviousLength + rowPreviousLength, positionXZ + columnNextLength + rowPreviousLength,
                             positionXZ + columnNextLength + rowNextLength, positionXZ + columnPreviousLength + rowNextLength,
-                            zone, occupied, _this.m_angle, positionR5C5, columnDirection, rowDirection, 4 - column, 4 - column2, 4 - row, 4 - row2);
+                            //cast.. need to change this
+                            (ItemClass.Zone)zone, occupied, _this.m_angle, positionR5C5, columnDirection, rowDirection, 4 - column, 4 - column2, 4 - row, 4 - row2);
                     }
                 }
             }
@@ -1330,7 +1336,7 @@ namespace GrowableOverhaul
         /// <param name="xDir"></param>
         /// <param name="zDir"></param>
         /// <param name="quad"></param>
-        private static void CheckBlock(ref ZoneBlock _this, ushort otherBlockID, ref ZoneBlock other, int[] xBuffer, ItemClass.Zone zone, Vector2 startPos, Vector2 xDir, Vector2 zDir, Quad2 quad)
+        private static void CheckBlock(ref ZoneBlock _this, ushort otherBlockID, ref ZoneBlock other, int[] xBuffer, ExtendedItemClass.Zone zone, Vector2 startPos, Vector2 xDir, Vector2 zDir, Quad2 quad)
         {
             // difference of 2 radian angles (360 deg = 2*PI * 0.6366197f = 4f)
             // that means an angle difference of 90 deg would result in 1f
@@ -1507,10 +1513,13 @@ namespace GrowableOverhaul
 
             // select a random zoned, unoccupied row and get its zone type
             // this will be our seed row
+
+           
             int seedRow = 0;
-            ItemClass.Zone zone = ItemClass.Zone.Unzoned;
-            for (int index = 0; index < 4 && zone == ItemClass.Zone.Unzoned; ++index)
+            ExtendedItemClass.Zone zone = ExtendedItemClass.Zone.Unzoned;
+            for (int index = 0; index < 4 && zone == ExtendedItemClass.Zone.Unzoned; ++index)
             {
+                //Get the zone type. 
                 seedRow = Singleton<SimulationManager>.instance.m_randomizer.Int32((uint)rowCount);
                 if ((validFreeCellMask & 1UL << (seedRow << 3)) != 0UL)
                 {
@@ -1524,22 +1533,22 @@ namespace GrowableOverhaul
             int demand;
             switch (zone)
             {
-                case ItemClass.Zone.ResidentialLow:
+                case ExtendedItemClass.Zone.ResidentialLow:
                     demand = zoneManager.m_actualResidentialDemand + districtManager.m_districts.m_buffer[(int)district].CalculateResidentialLowDemandOffset();
                     break;
-                case ItemClass.Zone.ResidentialHigh:
+                case ExtendedItemClass.Zone.ResidentialHigh:
                     demand = zoneManager.m_actualResidentialDemand + districtManager.m_districts.m_buffer[(int)district].CalculateResidentialHighDemandOffset();
                     break;
-                case ItemClass.Zone.CommercialLow:
+                case ExtendedItemClass.Zone.CommercialLow:
                     demand = zoneManager.m_actualCommercialDemand + districtManager.m_districts.m_buffer[(int)district].CalculateCommercialLowDemandOffset();
                     break;
-                case ItemClass.Zone.CommercialHigh:
+                case ExtendedItemClass.Zone.CommercialHigh:
                     demand = zoneManager.m_actualCommercialDemand + districtManager.m_districts.m_buffer[(int)district].CalculateCommercialHighDemandOffset();
                     break;
-                case ItemClass.Zone.Industrial:
+                case ExtendedItemClass.Zone.Industrial:
                     demand = zoneManager.m_actualWorkplaceDemand + districtManager.m_districts.m_buffer[(int)district].CalculateIndustrialDemandOffset();
                     break;
-                case ItemClass.Zone.Office:
+                case ExtendedItemClass.Zone.Office:
                     demand = zoneManager.m_actualWorkplaceDemand + districtManager.m_districts.m_buffer[(int)district].CalculateOfficeDemandOffset();
                     break;
                 default:
@@ -2172,26 +2181,26 @@ namespace GrowableOverhaul
                 ItemClass.Service service;
                 switch (zone)
                 {
-                    case ItemClass.Zone.ResidentialLow:
+                    case ExtendedItemClass.Zone.ResidentialLow:
                         service = ItemClass.Service.Residential;
                         subService = ItemClass.SubService.ResidentialLow;
                         break;
-                    case ItemClass.Zone.ResidentialHigh:
+                    case ExtendedItemClass.Zone.ResidentialHigh:
                         service = ItemClass.Service.Residential;
                         subService = ItemClass.SubService.ResidentialHigh;
                         break;
-                    case ItemClass.Zone.CommercialLow:
+                    case ExtendedItemClass.Zone.CommercialLow:
                         service = ItemClass.Service.Commercial;
                         subService = ItemClass.SubService.CommercialLow;
                         break;
-                    case ItemClass.Zone.CommercialHigh:
+                    case ExtendedItemClass.Zone.CommercialHigh:
                         service = ItemClass.Service.Commercial;
                         subService = ItemClass.SubService.CommercialHigh;
                         break;
-                    case ItemClass.Zone.Industrial:
+                    case ExtendedItemClass.Zone.Industrial:
                         service = ItemClass.Service.Industrial;
                         break;
-                    case ItemClass.Zone.Office:
+                    case ExtendedItemClass.Zone.Office:
                         service = ItemClass.Service.Office;
                         subService = ItemClass.SubService.None;
                         break;
@@ -2279,14 +2288,14 @@ namespace GrowableOverhaul
 
 
                             // industrial specialisations
-                            if (zone == ItemClass.Zone.Industrial)
+                            if (zone == ExtendedItemClass.Zone.Industrial)
                             {
                                 ZoneBlock.GetIndustryType(buildingSpawnPos, out subService, out level);
                             }
                             // commercial specialisations
-                            else if (zone == ItemClass.Zone.CommercialLow || zone == ItemClass.Zone.CommercialHigh)
+                            else if (zone == ExtendedItemClass.Zone.CommercialLow || zone == ExtendedItemClass.Zone.CommercialHigh)
                             {
-                                ZoneBlock.GetCommercialType(buildingSpawnPos, zone, finalWidth, finalDepth, out subService, out level);
+                                ZoneBlock.GetCommercialType(buildingSpawnPos, ItemClass.Zone.CommercialLow, finalWidth, finalDepth, out subService, out level);
                             }
 
                             // get district style
@@ -2297,8 +2306,23 @@ namespace GrowableOverhaul
 
                             Debug.Log("FinalDepth = " + finalDepth + " FinalWidth = " + finalWidth);
 
-                            info = Singleton<BuildingManager>.instance.GetRandomBuildingInfo(ref Singleton<SimulationManager>.instance.m_randomizer, service, subService, level, finalWidth, finalDepth, finalZoningMode, 0);
-                   
+                            //info = Singleton<BuildingManager>.instance.GetRandomBuildingInfo(ref Singleton<SimulationManager>.instance.m_randomizer, 
+                            //service, subService, level, finalWidth, finalDepth, finalZoningMode, 0);
+
+                            /*
+
+                            If BT active, let it handle all prefab spawning. It will reconize larger plots and new zone types. 
+
+                            */
+
+        
+
+                            //BuildingInfo buildingInfo = BuildingManagerDetour.GetRandomBuildingInfo_Spawn(vector6, ref Singleton<SimulationManager>.instance.m_randomizer,     
+                                //service, subService, level, finalWidth, finalDepth, finalZoningMode, style);
+
+                            info = Singleton<BuildingManager>.instance.GetRandomBuildingInfo(ref Singleton<SimulationManager>.instance.m_randomizer, 
+                                service, subService, ItemClass.Level.Level1, finalWidth, finalDepth, finalZoningMode, 0);
+
 
                             //Debug.Log(info.name);
                             // no building found? go back to switch statement and use different calculations
@@ -2354,8 +2378,8 @@ namespace GrowableOverhaul
                     // Apply high-density building flag
                     switch (zone)
                     {
-                        case ItemClass.Zone.ResidentialHigh:
-                        case ItemClass.Zone.CommercialHigh:
+                        case ExtendedItemClass.Zone.ResidentialHigh:
+                        case ExtendedItemClass.Zone.CommercialHigh:
                             Singleton<BuildingManager>.instance.m_buildings.m_buffer[(int)buildingID].m_flags |= Building.Flags.HighDensity;
                             break;
                     }

@@ -11,6 +11,28 @@ namespace GrowableOverhaul
 
     public static class BuildingManagerDetour
     {
+
+        public enum ServiceIndex
+
+        {
+            ResLow,
+            ResMed,
+            ResHigh,
+
+            ComLow,
+            ComHigh,
+
+            OffLow,
+            OffHigh,
+
+            IndLow,
+            IndHigh,
+
+            IndProc,
+            IndExt
+
+        }
+
         private static FieldInfo m_areaBuildings_field;
         private static FieldInfo m_buildingsRefreshed_field;
 
@@ -46,6 +68,10 @@ namespace GrowableOverhaul
         [RedirectMethod(true)]
         public static void ApplyRefreshBuildings(BuildingManager _this, BuildingInfo[] infos, ushort[] indices, int style)
         {
+
+        /*
+        Read RICO Data and assign new zones from that. Rather then pulling zones form prefab, grab it from that. 
+        */
 
         //clear array, and assign 10x larger array to hold larger values. Original was 3040. 
            FastList<ushort>[] areaBuildings = new FastList<ushort>[300000];
@@ -96,7 +122,14 @@ namespace GrowableOverhaul
                         }
                         else
                         {
-                            int areaIndex = GetAreaIndex(info.m_class.m_service, info.m_class.m_subService, info.m_class.m_level, info.GetWidth(), info.GetLength(), info.m_zoningMode);
+                            //int areaIndex = GetAreaIndex(info.m_class.m_service, info.m_class.m_subService, 
+                            //info.m_class.m_level, info.GetWidth(), info.GetLength(), info.m_zoningMode);
+
+                            //For testing, lets make all assets level 1. 
+
+                            int areaIndex = GetAreaIndex(info.m_class.m_service, info.m_class.m_subService, 
+                            ItemClass.Level.Level1, info.GetWidth(), info.GetLength(), info.m_zoningMode);
+
                             Debug.Log(info.name + " AreaIndex is: " + areaIndex);
 
                             if (areaBuildings[areaIndex] == null)
@@ -237,6 +270,8 @@ namespace GrowableOverhaul
         [RedirectMethod(true)]
         private static int GetAreaIndex(ItemClass.Service service, ItemClass.SubService subService, ItemClass.Level level, int width, int length, BuildingInfo.ZoningMode zoningMode)
         {
+
+
             Debug.Log("GetAreaDetour called");
 
             int privateSubServiceIndex = ItemClass.GetPrivateSubServiceIndex(subService);
