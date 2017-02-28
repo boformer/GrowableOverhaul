@@ -5,6 +5,7 @@ using GrowableOverhaul.Redirection;
 using ICities;
 using UnityEngine;
 using ColossalFramework.UI;
+using ColossalFramework;
 
 namespace GrowableOverhaul
 {
@@ -37,12 +38,8 @@ namespace GrowableOverhaul
 
             refButton = uiView.FindUIComponent<UIButton>("ResidentialLow");
 
-
-
-            GameObject.Destroy(refButton.gameObject);
-
-            //ZoningPanel.
-
+            NewZoneColorManager.SetNewColors();
+            //TerrainPatch.Refresh();
 
             Debug.Log("GrowableOverhaul OnLevelLoaded!");
 

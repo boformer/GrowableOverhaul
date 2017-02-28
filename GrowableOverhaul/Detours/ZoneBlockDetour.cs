@@ -1316,10 +1316,10 @@ namespace GrowableOverhaul
                         Vector2 columnNextLength = ((float)column - 3f) * columnDirection;
 
                         // Send zone cell to rendering pipeline
-                        TerrainModify.ApplyQuad(positionXZ + columnPreviousLength + rowPreviousLength, positionXZ + columnNextLength + rowPreviousLength,
+                        ApplyQuad(positionXZ + columnPreviousLength + rowPreviousLength, positionXZ + columnNextLength + rowPreviousLength,
                             positionXZ + columnNextLength + rowNextLength, positionXZ + columnPreviousLength + rowNextLength,
-                            //cast.. need to change this
-                            (ItemClass.Zone)zone, occupied, _this.m_angle, positionR5C5, columnDirection, rowDirection, 4 - column, 4 - column2, 4 - row, 4 - row2);
+                            //New extendeditemclass
+                            zone, occupied, _this.m_angle, positionR5C5, columnDirection, rowDirection, 4 - column, 4 - column2, 4 - row, 4 - row2);
                     }
                 }
             }
@@ -1489,6 +1489,114 @@ namespace GrowableOverhaul
             return false;
         }
 
+        //This was last referance to Itemclass.zone!
+        public static void ApplyQuad(Vector2 a, Vector2 b, Vector2 c, Vector2 d, ExtendedItemClass.Zone zone, bool occupied, float angle, Vector2 pos, Vector2 xDir, Vector2 zDir, int xs, int xe, int zs, int ze)
+        {
+            TerrainManager instance = Singleton<TerrainManager>.instance;
+            TerrainArea zonesModified = instance.m_zonesModified;
+            TerrainModify.ZoneModification[] tempZones = instance.m_tempZones;
+            if (!instance.m_modifyingZones)
+            {
+                return;
+            }
+            int num = Mathf.Max((int)(Mathf.Min(Mathf.Min(a.x, b.x), Mathf.Min(c.x, d.x)) / 4f + 2160f), zonesModified.m_minX << 2);
+            int num2 = Mathf.Max((int)(Mathf.Min(Mathf.Min(a.y, b.y), Mathf.Min(c.y, d.y)) / 4f + 2160f), zonesModified.m_minZ << 2);
+            int num3 = Mathf.Min((int)(Mathf.Max(Mathf.Max(a.x, b.x), Mathf.Max(c.x, d.x)) / 4f + 2160f), zonesModified.m_maxX << 2);
+            int num4 = Mathf.Min((int)(Mathf.Max(Mathf.Max(a.y, b.y), Mathf.Max(c.y, d.y)) / 4f + 2160f), zonesModified.m_maxZ << 2);
+            float num5 = 17280f;
+            int num6 = (zonesModified.m_maxX - zonesModified.m_minX << 2) + 1;
+            float num7 = 4f;
+            num7 *= num7;
+            byte zone2 = (byte)(zone + ((!occupied) ? 0 : 16));
+
+            Debug.Log("Zone Byte is:" + zone2);
+
+            byte angle2 = (byte)(Mathf.RoundToInt(angle * 162.974655f) & 255);
+            for (int i = num2; i <= num4; i++)
+            {
+                int j = num;
+                while (j <= num3)
+                {
+                    Vector2 p;
+                    p.x = (float)j * 4f - num5 * 0.5f + 2f;
+                    p.y = (float)i * 4f - num5 * 0.5f + 2f;
+                    float num8 = 0f;
+                    if ((p.x - a.x) * (b.y - a.y) - (p.y - a.y) * (b.x - a.x) >= 0f)
+                    {
+                        goto IL_24D;
+                    }
+                    num8 = Mathf.Max(num8, SqrOffset(a, b, p));
+                    if (num8 < num7)
+                    {
+                        goto IL_24D;
+                    }
+                    IL_51D:
+                    j++;
+                    continue;
+                    IL_24D:
+                    if ((p.x - b.x) * (c.y - b.y) - (p.y - b.y) * (c.x - b.x) < 0f)
+                    {
+                        num8 = Mathf.Max(num8, SqrOffset(b, c, p));
+                        if (num8 >= num7)
+                        {
+                            goto IL_51D;
+                        }
+                    }
+                    if ((p.x - c.x) * (d.y - c.y) - (p.y - c.y) * (d.x - c.x) < 0f)
+                    {
+                        num8 = Mathf.Max(num8, SqrOffset(c, d, p));
+                        if (num8 >= num7)
+                        {
+                            goto IL_51D;
+                        }
+                    }
+                    if ((p.x - d.x) * (a.y - d.y) - (p.y - d.y) * (a.x - d.x) < 0f)
+                    {
+                        num8 = Mathf.Max(num8, SqrOffset(d, a, p));
+                        if (num8 >= num7)
+                        {
+                            goto IL_51D;
+                        }
+                    }
+                    int num9 = (i - (zonesModified.m_minZ << 2)) * num6 + (j - (zonesModified.m_minX << 2));
+                    TerrainModify.ZoneModification zoneModification = tempZones[num9];
+                    Vector2 vector = new Vector2(pos.x - p.x, pos.y - p.y);
+                    if (num8 <= zoneModification.m_minD2)
+                    {
+                        vector = new Vector2(pos.x - p.x, pos.y - p.y);
+                        float num10 = Mathf.Clamp(Mathf.Round((vector.x * xDir.x + vector.y * xDir.y) * 0.015625f), (float)xs, (float)xe);
+                        float num11 = Mathf.Clamp(Mathf.Round((vector.x * zDir.x + vector.y * zDir.y) * 0.015625f), (float)zs, (float)ze);
+                        vector.x -= num10 * xDir.x + num11 * zDir.x;
+                        vector.y -= num10 * xDir.y + num11 * zDir.y;
+                        zoneModification.m_angle = angle2;
+                        zoneModification.m_zone = zone2;
+                        zoneModification.m_offsetX = (sbyte)Mathf.RoundToInt(vector.x * 15.9375f);
+                        zoneModification.m_offsetZ = (sbyte)Mathf.RoundToInt(vector.y * 15.9375f);
+                        zoneModification.m_minD2 = num8;
+                    }
+                    tempZones[num9] = zoneModification;
+                    goto IL_51D;
+                }
+            }
+        }
+
+        private static float SqrOffset(Vector2 a, Vector2 b, Vector2 p)
+        {
+            float num = b.x - a.x;
+            float num2 = b.y - a.y;
+            float num3 = a.x - p.x;
+            float num4 = a.y - p.y;
+            float num5 = num * num3 + num2 * num4;
+            float num6 = num * num + num2 * num2;
+            if (num6 != 0f)
+            {
+                num5 /= num6;
+            }
+            float num7 = num3 - num * num5;
+            float num8 = num4 - num2 * num5;
+            return num7 * num7 + num8 * num8;
+        }
+
         /// <summary>
         /// Spawns new growables on empty zones.
         /// </summary>
@@ -1524,6 +1632,8 @@ namespace GrowableOverhaul
                 if ((validFreeCellMask & 1UL << (seedRow << 3)) != 0UL)
                 {
                     zone = GetZoneDeep(ref _this, blockID, 0, seedRow);
+                    Debug.Log("Detected Zone is: " + zone);
+
                 }
             }
 

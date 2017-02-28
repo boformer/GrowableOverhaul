@@ -12,11 +12,14 @@ namespace GrowableOverhaul
         //This is set from ZoningPanel when player clicks on zoning button. Change all refs from m_zone to this. 
         public static ExtendedItemClass.Zone ExtendedZone;
 
+        //only read and assigned by CalculateFillBuffer. 
+        private static FastList<FillPos> fillPositions;
 
         private static FieldInfo m_dataLock_field;
 
         private static FieldInfo m_fillBuffer1_field;
         private static FieldInfo m_fillBuffer2_field;
+        private static FieldInfo m_fillBuffer3_field;
 
         private static FieldInfo m_zoning_field;
         private static FieldInfo m_dezoning_field;
@@ -33,6 +36,13 @@ namespace GrowableOverhaul
         private static FieldInfo m_closeSegments_field;
 
         private static FieldInfo m_validPosition_field;
+        private static FieldInfo m_startPosition_field;
+        private static FieldInfo m_startDirection_field;
+
+        private static FieldInfo m_toolController_field;
+
+        private static FieldInfo ToolCursor_field;
+
 
 
         private static void FindFieldInfos()
@@ -45,12 +55,13 @@ namespace GrowableOverhaul
 
                 m_fillBuffer1_field = typeof (ZoneTool).GetField("m_fillBuffer1", flags);
                 m_fillBuffer2_field = typeof(ZoneTool).GetField("m_fillBuffer2", flags);
+                m_fillBuffer3_field = typeof(ZoneTool).GetField("m_fillBuffer3", flags);
 
                 m_zoning_field = typeof(ZoneTool).GetField("m_zoning", flags);
                 m_dezoning_field = typeof(ZoneTool).GetField("m_dezoning", flags);
 
-                m_mouseRay_field = typeof(ZoneTool).GetField("mouseRay", flags);
-                m_mousePosition_field = typeof(ZoneTool).GetField("mousePosition", flags);
+                m_mouseRay_field = typeof(ZoneTool).GetField("m_mouseRay", flags);
+                m_mousePosition_field = typeof(ZoneTool).GetField("m_mousePosition", flags);
                 m_mouseRayValid_field = typeof(ZoneTool).GetField("m_mouseRayValid", flags);
                 m_mouseRayLength_field = typeof(ZoneTool).GetField("m_mouseRayLength", flags);
                 m_mouseDirection_field = typeof(ZoneTool).GetField("m_mouseDirection", flags);
@@ -61,13 +72,52 @@ namespace GrowableOverhaul
                 m_closeSegments_field = typeof(ZoneTool).GetField("m_closeSegments", flags);
 
                 m_validPosition_field = typeof(ZoneTool).GetField("m_validPosition", flags);
+                m_startPosition_field = typeof(ZoneTool).GetField("m_startPosition", flags);
+                m_startDirection_field = typeof(ZoneTool).GetField("m_startDirection", flags);
+
+                m_toolController_field = typeof(ZoneTool).GetField("m_toolController", flags);
+
+                ToolCursor_field = typeof(ZoneTool).GetField("ToolCursor", flags);
             }
+        }
+
+
+        private static ToolController GettoolController(ZoneTool _this)
+        {
+            FindFieldInfos();
+            return (ToolController)m_toolController_field.GetValue(_this);
         }
 
         private static ulong[] GetFillBuffer1(ZoneTool _this)
         {
             FindFieldInfos();
-            return (ulong[]) m_fillBuffer1_field.GetValue(_this);
+            return (ulong[])m_fillBuffer1_field.GetValue(_this);
+        }
+        private static ulong[] GetFillBuffer2(ZoneTool _this)
+        {
+            FindFieldInfos();
+            return (ulong[])m_fillBuffer2_field.GetValue(_this);
+        }
+        private static ulong[] GetFillBuffer3(ZoneTool _this)
+        {
+            FindFieldInfos();
+            return (ulong[])m_fillBuffer3_field.GetValue(_this);
+        }
+
+        private static void AssignFillBuffer1(ZoneTool _this, ulong[] data)
+        {
+            FindFieldInfos();
+            m_fillBuffer1_field.SetValue(_this, data);
+        }
+        private static void AssignFillBuffer2(ZoneTool _this, ulong[] data)
+        {
+            FindFieldInfos();
+            m_fillBuffer2_field.SetValue(_this, data);
+        }
+        private static void AssignFillBuffer3(ZoneTool _this, ulong[] data)
+        {
+            FindFieldInfos();
+            m_fillBuffer3_field.SetValue(_this, data);
         }
 
         private static bool GetZoning(ZoneTool _this)
@@ -75,7 +125,6 @@ namespace GrowableOverhaul
             FindFieldInfos();
             return (bool) m_zoning_field.GetValue(_this);
         }
-
         private static bool GetDezoning(ZoneTool _this)
         {
             FindFieldInfos();
@@ -88,23 +137,51 @@ namespace GrowableOverhaul
             return (object)m_dataLock_field.GetValue(_this);
         }
 
+        private static bool GetValidPosition(ZoneTool _this)
+        {
+            FindFieldInfos();
+            return (bool)m_validPosition_field.GetValue(_this);
+        }
+
         private static Ray GetMouseRay(ZoneTool _this) {
 
             FindFieldInfos();
             return (Ray)m_mouseRay_field.GetValue(_this);
         }
-
         private static float GetMouseRayLength(ZoneTool _this)
         {
             FindFieldInfos();
             return (float)m_mouseRayLength_field.GetValue(_this);
         }
-
         private static bool GetMouseRayValid(ZoneTool _this)
         {
             FindFieldInfos();
             return (bool)m_mouseRayValid_field.GetValue(_this);
         }
+        private static Vector3 GetMousePosition(ZoneTool _this)
+        {
+            FindFieldInfos();
+            return (Vector3)m_mousePosition_field.GetValue(_this);
+        }
+        private static Vector3 GetMouseDirection(ZoneTool _this)
+        {
+            FindFieldInfos();
+            return (Vector3)m_mouseDirection_field.GetValue(_this);
+        }
+
+        private static void AssignMouseDirection(ref ZoneTool _this, Vector3 data)
+        {
+
+            FindFieldInfos();
+            m_mouseDirection_field.SetValue(_this, data);
+        }
+        private static void AssignMousePosition(ref ZoneTool _this, Vector3 data)
+        {
+
+            FindFieldInfos();
+            m_mousePosition_field.SetValue(_this, data);
+        }
+
 
         private static Vector3 GetCameraDirection(ZoneTool _this)
         {
@@ -117,23 +194,10 @@ namespace GrowableOverhaul
             FindFieldInfos();
             return (int)m_closeSegmentCount_field.GetValue(_this);
         }
-
         private static ushort[] GetCloseSegments(ZoneTool _this)
         {
             FindFieldInfos();
             return (ushort[])m_closeSegments_field.GetValue(_this);
-        }
-
-        private static void AssignMouseDirection(ref ZoneTool _this, Vector3 data ) {
-
-            FindFieldInfos();
-            m_mouseDirection_field.SetValue(_this, data);
-        }
-
-        private static void AssignMousePosition(ref ZoneTool _this, Vector3 data) {
-
-            FindFieldInfos();
-            m_mousePosition_field.SetValue(_this, data);
         }
 
         private static void AssignValidPosition(ref ZoneTool _this, bool data ) {
@@ -141,12 +205,32 @@ namespace GrowableOverhaul
             FindFieldInfos();
             m_validPosition_field.SetValue(_this, data);
         }
+        private static Vector3 GetStartPosition(ZoneTool _this)
+        {
+            FindFieldInfos();
+            return (Vector3)m_startPosition_field.GetValue(_this);
+        }
+        private static Vector3 GetStartDirection(ZoneTool _this)
+        {
+            FindFieldInfos();
+            return (Vector3)m_startDirection_field.GetValue(_this);
+        }
+
+        private static void AssignToolCursor(ref ZoneTool _this, CursorInfo data)
+        {
+            FindFieldInfos();
+            ToolCursor_field.SetValue(_this, data);
+        }
+
+
 
         //Begin Detours!
 
-        [RedirectMethod(false)]
+        [RedirectMethod(true)]
         private static void SimulationStep(ZoneTool _this)
         {
+            int closeSegmentCount = GetcloseSegmentCount(_this);
+
             while (!Monitor.TryEnter( GetDataLock(_this), SimulationManager.SYNCHRONIZE_TIMEOUT))
             {
             }
@@ -181,14 +265,16 @@ namespace GrowableOverhaul
             }
             ToolBase.RaycastInput input = new ToolBase.RaycastInput(mouseRay, GetMouseRayLength(_this));
             ToolBase.RaycastOutput raycastOutput;
-            if (mouseRayValid && ToolBase.RayCast(input, out raycastOutput))
+            raycastOutput.m_hitPos = new Vector3();
+
+            if (mouseRayValid && RayCast(input, out raycastOutput))
             {
                 switch (_this.m_mode)
                 {
                     case ZoneTool.Mode.Select:
                         if (!GetZoning(_this) && !GetDezoning(_this))
                         {
-                            int closeSegmentCount = GetcloseSegmentCount(_this);
+                            
 
                             Singleton<NetManager>.instance.GetClosestSegments(raycastOutput.m_hitPos, GetCloseSegments(_this), out closeSegmentCount);
 
@@ -279,12 +365,13 @@ namespace GrowableOverhaul
                         break;
                     case ZoneTool.Mode.Fill:
                         {
-                            Singleton<NetManager>.instance.GetClosestSegments(raycastOutput.m_hitPos, _this.m_closeSegments, out _this.m_closeSegmentCount);
+
+                            Singleton<NetManager>.instance.GetClosestSegments(raycastOutput.m_hitPos, GetCloseSegments(_this), out closeSegmentCount);
                             float num3 = 256f;
                             ushort num4 = 0;
-                            for (int j = 0; j < _this.m_closeSegmentCount; j++)
+                            for (int j = 0; j < closeSegmentCount; j++)
                             {
-                                Singleton<NetManager>.instance.m_segments.m_buffer[(int)_this.m_closeSegments[j]].GetClosestZoneBlock(raycastOutput.m_hitPos, ref num3, ref num4);
+                                Singleton<NetManager>.instance.m_segments.m_buffer[(int)GetCloseSegments(_this)[j]].GetClosestZoneBlock(raycastOutput.m_hitPos, ref num3, ref num4);
                             }
                             if (num4 != 0)
                             {
@@ -307,7 +394,11 @@ namespace GrowableOverhaul
                                     {
                                         for (int k = 0; k < 64; k++)
                                         {
-                                            _this.m_fillBuffer2[k] = GetFillBuffer1(_this)[k];
+                                            var fillbuffer2temp = GetFillBuffer2(_this);
+
+                                            fillbuffer2temp[k] = GetFillBuffer1(_this)[k];
+
+                                            AssignFillBuffer2(_this, fillbuffer2temp);
                                         }
                                         AssignMouseDirection(ref _this, forward2);
                                         AssignMousePosition(ref _this, raycastOutput.m_hitPos);
@@ -337,13 +428,266 @@ namespace GrowableOverhaul
             }
         }
 
+        private static bool RayCast(ToolBase.RaycastInput input, out ToolBase.RaycastOutput output)
+        {
+            Vector3 origin = input.m_ray.origin;
+            Vector3 normalized = input.m_ray.direction.normalized;
+            Vector3 vector = input.m_ray.origin + normalized * input.m_length;
+            Segment3 ray = new Segment3(origin, vector);
+            output.m_hitPos = vector;
+            output.m_netNode = 0;
+            output.m_netSegment = 0;
+            output.m_building = 0;
+            output.m_propInstance = 0;
+            output.m_treeInstance = 0u;
+            output.m_vehicle = 0;
+            output.m_parkedVehicle = 0;
+            output.m_citizenInstance = 0;
+            output.m_transportLine = 0;
+            output.m_transportStopIndex = 0;
+            output.m_transportSegmentIndex = 0;
+            output.m_district = 0;
+            output.m_disaster = 0;
+            output.m_currentEditObject = false;
+            bool result = false;
+            float num = input.m_length;
+            Vector3 vector2;
+            if (!input.m_ignoreTerrain && Singleton<TerrainManager>.instance.RayCast(ray, out vector2))
+            {
+                float num2 = Vector3.Distance(vector2, origin) + 100f;
+                if (num2 < num)
+                {
+                    output.m_hitPos = vector2;
+                    result = true;
+                    num = num2;
+                }
+            }
+            if ((input.m_ignoreNodeFlags != NetNode.Flags.All || input.m_ignoreSegmentFlags != NetSegment.Flags.All) && Singleton<NetManager>.instance.RayCast(input.m_buildObject as NetInfo, ray, input.m_netSnap, input.m_netService.m_service, input.m_netService2.m_service, input.m_netService.m_subService, input.m_netService2.m_subService, input.m_netService.m_itemLayers, input.m_netService2.m_itemLayers, input.m_ignoreNodeFlags, input.m_ignoreSegmentFlags, out vector2, out output.m_netNode, out output.m_netSegment))
+            {
+                float num3 = Vector3.Distance(vector2, origin);
+                if (num3 < num)
+                {
+                    output.m_hitPos = vector2;
+                    result = true;
+                    num = num3;
+                }
+                else
+                {
+                    output.m_netNode = 0;
+                    output.m_netSegment = 0;
+                }
+            }
+            if (input.m_ignoreBuildingFlags != Building.Flags.All && Singleton<BuildingManager>.instance.RayCast(ray, input.m_buildingService.m_service, input.m_buildingService.m_subService, input.m_buildingService.m_itemLayers, input.m_ignoreBuildingFlags, out vector2, out output.m_building))
+            {
+                float num4 = Vector3.Distance(vector2, origin);
+                if (num4 < num)
+                {
+                    output.m_hitPos = vector2;
+                    output.m_netNode = 0;
+                    output.m_netSegment = 0;
+                    result = true;
+                    num = num4;
+                }
+                else
+                {
+                    output.m_building = 0;
+                }
+            }
+            if (input.m_ignoreDisasterFlags != DisasterData.Flags.All && Singleton<DisasterManager>.instance.RayCast(ray, input.m_ignoreDisasterFlags, out vector2, out output.m_disaster))
+            {
+                float num5 = Vector3.Distance(vector2, origin);
+                if (num5 < num)
+                {
+                    output.m_hitPos = vector2;
+                    output.m_netNode = 0;
+                    output.m_netSegment = 0;
+                    output.m_building = 0;
+                    result = true;
+                    num = num5;
+                }
+                else
+                {
+                    output.m_disaster = 0;
+                }
+            }
+            if (input.m_currentEditObject && Singleton<ToolManager>.instance.m_properties.RaycastEditObject(ray, out vector2))
+            {
+                float num6 = Vector3.Distance(vector2, origin);
+                if (num6 < num)
+                {
+                    output.m_hitPos = vector2;
+                    output.m_netNode = 0;
+                    output.m_netSegment = 0;
+                    output.m_building = 0;
+                    output.m_disaster = 0;
+                    output.m_currentEditObject = true;
+                    result = true;
+                    num = num6;
+                }
+            }
+            if (input.m_ignorePropFlags != PropInstance.Flags.All && Singleton<PropManager>.instance.RayCast(ray, input.m_propService.m_service, input.m_propService.m_subService, input.m_propService.m_itemLayers, input.m_ignorePropFlags, out vector2, out output.m_propInstance))
+            {
+                float num7 = Vector3.Distance(vector2, origin) - 0.5f;
+                if (num7 < num)
+                {
+                    output.m_hitPos = vector2;
+                    output.m_netNode = 0;
+                    output.m_netSegment = 0;
+                    output.m_building = 0;
+                    output.m_disaster = 0;
+                    output.m_currentEditObject = false;
+                    result = true;
+                    num = num7;
+                }
+                else
+                {
+                    output.m_propInstance = 0;
+                }
+            }
+            if (input.m_ignoreTreeFlags != global::TreeInstance.Flags.All && Singleton<TreeManager>.instance.RayCast(ray, input.m_treeService.m_service, input.m_treeService.m_subService, input.m_treeService.m_itemLayers, input.m_ignoreTreeFlags, out vector2, out output.m_treeInstance))
+            {
+                float num8 = Vector3.Distance(vector2, origin) - 1f;
+                if (num8 < num)
+                {
+                    output.m_hitPos = vector2;
+                    output.m_netNode = 0;
+                    output.m_netSegment = 0;
+                    output.m_building = 0;
+                    output.m_disaster = 0;
+                    output.m_propInstance = 0;
+                    output.m_currentEditObject = false;
+                    result = true;
+                    num = num8;
+                }
+                else
+                {
+                    output.m_treeInstance = 0u;
+                }
+            }
+            if ((input.m_ignoreVehicleFlags != (Vehicle.Flags.Created | Vehicle.Flags.Deleted | Vehicle.Flags.Spawned | Vehicle.Flags.Inverted | Vehicle.Flags.TransferToTarget | Vehicle.Flags.TransferToSource | Vehicle.Flags.Emergency1 | Vehicle.Flags.Emergency2 | Vehicle.Flags.WaitingPath | Vehicle.Flags.Stopped | Vehicle.Flags.Leaving | Vehicle.Flags.Arriving | Vehicle.Flags.Reversed | Vehicle.Flags.TakingOff | Vehicle.Flags.Flying | Vehicle.Flags.Landing | Vehicle.Flags.WaitingSpace | Vehicle.Flags.WaitingCargo | Vehicle.Flags.GoingBack | Vehicle.Flags.WaitingTarget | Vehicle.Flags.Importing | Vehicle.Flags.Exporting | Vehicle.Flags.Parking | Vehicle.Flags.CustomName | Vehicle.Flags.OnGravel | Vehicle.Flags.WaitingLoading | Vehicle.Flags.Congestion | Vehicle.Flags.DummyTraffic | Vehicle.Flags.Underground | Vehicle.Flags.Transition | Vehicle.Flags.InsideBuilding | Vehicle.Flags.LeftHandDrive) || input.m_ignoreParkedVehicleFlags != VehicleParked.Flags.All) && Singleton<VehicleManager>.instance.RayCast(ray, input.m_ignoreVehicleFlags, input.m_ignoreParkedVehicleFlags, out vector2, out output.m_vehicle, out output.m_parkedVehicle))
+            {
+                float num9 = Vector3.Distance(vector2, origin) - 0.5f;
+                if (num9 < num)
+                {
+                    output.m_hitPos = vector2;
+                    output.m_netNode = 0;
+                    output.m_netSegment = 0;
+                    output.m_building = 0;
+                    output.m_disaster = 0;
+                    output.m_propInstance = 0;
+                    output.m_treeInstance = 0u;
+                    output.m_currentEditObject = false;
+                    result = true;
+                    num = num9;
+                }
+                else
+                {
+                    output.m_vehicle = 0;
+                    output.m_parkedVehicle = 0;
+                }
+            }
+            if (input.m_ignoreCitizenFlags != CitizenInstance.Flags.All && Singleton<CitizenManager>.instance.RayCast(ray, input.m_ignoreCitizenFlags, out vector2, out output.m_citizenInstance))
+            {
+                float num10 = Vector3.Distance(vector2, origin) - 0.5f;
+                if (num10 < num)
+                {
+                    output.m_hitPos = vector2;
+                    output.m_netNode = 0;
+                    output.m_netSegment = 0;
+                    output.m_building = 0;
+                    output.m_disaster = 0;
+                    output.m_propInstance = 0;
+                    output.m_treeInstance = 0u;
+                    output.m_vehicle = 0;
+                    output.m_parkedVehicle = 0;
+                    output.m_currentEditObject = false;
+                    result = true;
+                    num = num10;
+                }
+                else
+                {
+                    output.m_citizenInstance = 0;
+                }
+            }
+            if (input.m_ignoreTransportFlags != TransportLine.Flags.All && Singleton<TransportManager>.instance.RayCast(input.m_ray, input.m_length, input.m_transportTypes, out vector2, out output.m_transportLine, out output.m_transportStopIndex, out output.m_transportSegmentIndex))
+            {
+                float num11 = Vector3.Distance(vector2, origin) - 2f;
+                if (num11 < num)
+                {
+                    output.m_hitPos = vector2;
+                    output.m_netNode = 0;
+                    output.m_netSegment = 0;
+                    output.m_building = 0;
+                    output.m_disaster = 0;
+                    output.m_propInstance = 0;
+                    output.m_treeInstance = 0u;
+                    output.m_vehicle = 0;
+                    output.m_parkedVehicle = 0;
+                    output.m_citizenInstance = 0;
+                    output.m_currentEditObject = false;
+                    result = true;
+                }
+                else
+                {
+                    output.m_transportLine = 0;
+                }
+            }
+            if (input.m_ignoreDistrictFlags != District.Flags.All)
+            {
+                if (input.m_districtNameOnly)
+                {
+                    if (Singleton<DistrictManager>.instance.RayCast(ray, input.m_rayRight, out vector2, out output.m_district))
+                    {
+                        output.m_hitPos = vector2;
+                    }
+                }
+                else
+                {
+                    output.m_district = Singleton<DistrictManager>.instance.SampleDistrict(output.m_hitPos);
+                    if ((Singleton<DistrictManager>.instance.m_districts.m_buffer[(int)output.m_district].m_flags & input.m_ignoreDistrictFlags) != District.Flags.None)
+                    {
+                        output.m_district = 0;
+                    }
+                }
+                if (output.m_district != 0)
+                {
+                    output.m_netNode = 0;
+                    output.m_netSegment = 0;
+                    output.m_building = 0;
+                    output.m_disaster = 0;
+                    output.m_propInstance = 0;
+                    output.m_treeInstance = 0u;
+                    output.m_vehicle = 0;
+                    output.m_parkedVehicle = 0;
+                    output.m_citizenInstance = 0;
+                    output.m_transportLine = 0;
+                    output.m_transportStopIndex = 0;
+                    output.m_transportSegmentIndex = 0;
+                    output.m_currentEditObject = false;
+                    result = true;
+                }
+            }
+            return result;
+        }
+
         //Called only from simulationstep
         private static bool CalculateFillBuffer(ZoneTool _this, Vector3 position, Vector3 direction, ExtendedItemClass.Zone requiredZone, bool occupied1, bool occupied2)
         {
+            fillPositions = new FastList<FillPos>();
+
+            //Debug.Log("Start CalculateFillBuffer");
             for (int i = 0; i < 64; i++)
             {
-                _this.m_fillBuffer1[i] = 0uL;
+                var fillbuffer1 = GetFillBuffer1(_this);
+
+                fillbuffer1[i] = 0uL;
+
+                AssignFillBuffer1(_this, fillbuffer1);
+
+
             }
+            //Debug.Log("CalculateFillBuffer After First Read");
+
             if (!occupied2)
             {
                 float angle = Mathf.Atan2(-direction.x, direction.z);
@@ -368,11 +712,13 @@ namespace GrowableOverhaul
                             float num11 = Mathf.Max(Mathf.Max(num - 46f - position2.x, num2 - 46f - position2.z), Mathf.Max(position2.x - num3 - 46f, position2.z - num4 - 46f));
                             if (num11 < 0f)
                             {
+                                //Changed call
                                 CalculateFillBuffer(_this, position, direction, angle, num9, ref instance.m_blocks.m_buffer[(int)num9], requiredZone, occupied1, occupied2);
                             }
                             num9 = instance.m_blocks.m_buffer[(int)num9].m_nextGridBlock;
                             if (++num10 >= 49152)
                             {
+                                //Debug.Log("CalculateFillBuffer Debug1");
                                 CODebugBase<LogChannel>.Error(LogChannel.Core, "Invalid list detected!\n");
                                 break;
                             }
@@ -380,30 +726,44 @@ namespace GrowableOverhaul
                     }
                 }
             }
-            if ((_this.m_fillBuffer1[32] & 4294967296uL) != 0uL)
+            //Debug.Log("CalculateFillBuffer Middle");
+
+            if ((GetFillBuffer1(_this)[32] & 4294967296uL) != 0uL)
             {
-                _this.m_fillPositions.Clear();
+                
+                fillPositions.Clear();
                 int l = 0;
                 int num12 = 32;
                 int num13 = 32;
                 int num14 = 32;
                 int num15 = 32;
-                ZoneTool.FillPos fillPos;
+                FillPos fillPos;
                 fillPos.m_x = 32;
                 fillPos.m_z = 32;
-               _this.m_fillPositions.Add(fillPos);
-               _this.m_fillBuffer1[32] &= 18446744069414584319uL;
-                while (l < _this.m_fillPositions.m_size)
+               fillPositions.Add(fillPos);
+
+                //changed
+                var fillBuffer1 = GetFillBuffer1(_this);
+                fillBuffer1[32] &= 18446744069414584319uL;
+                AssignFillBuffer1(_this, fillBuffer1);
+
+
+                while (l < fillPositions.m_size)
                 {
-                    fillPos = _this.m_fillPositions.m_buffer[l++];
+                    fillPos = fillPositions.m_buffer[l++];
                     if (fillPos.m_z > 0)
                     {
-                        ZoneTool.FillPos item = fillPos;
+                        FillPos item = fillPos;
                         item.m_z -= 1;
-                        if ((_this.m_fillBuffer1[(int)item.m_z] & 1uL << (int)item.m_x) != 0uL)
+                        if ((GetFillBuffer1(_this)[(int)item.m_z] & 1uL << (int)item.m_x) != 0uL)
                         {
-                            _this.m_fillPositions.Add(item);
-                            _this.m_fillBuffer1[(int)item.m_z] &= ~(1uL << (int)item.m_x);
+                            fillPositions.Add(item);
+
+                            //changed
+                            fillBuffer1 = GetFillBuffer1(_this);
+                            fillBuffer1[(int)item.m_z] &= ~(1uL << (int)item.m_x);
+                            AssignFillBuffer1(_this, fillBuffer1);
+
                             if ((int)item.m_z < num13)
                             {
                                 num13 = (int)item.m_z;
@@ -412,12 +772,17 @@ namespace GrowableOverhaul
                     }
                     if (fillPos.m_x > 0)
                     {
-                        ZoneTool.FillPos item2 = fillPos;
+                        FillPos item2 = fillPos;
                         item2.m_x -= 1;
-                        if ((this.m_fillBuffer1[(int)item2.m_z] & 1uL << (int)item2.m_x) != 0uL)
+                        if ((GetFillBuffer1(_this)[(int)item2.m_z] & 1uL << (int)item2.m_x) != 0uL)
                         {
-                            this.m_fillPositions.Add(item2);
-                            this.m_fillBuffer1[(int)item2.m_z] &= ~(1uL << (int)item2.m_x);
+                            fillPositions.Add(item2);
+
+                            //changed
+                            fillBuffer1 = GetFillBuffer1(_this);
+                            fillBuffer1[(int)item2.m_z] &= ~(1uL << (int)item2.m_x);
+                            AssignFillBuffer1(_this, fillBuffer1);
+
                             if ((int)item2.m_x < num12)
                             {
                                 num12 = (int)item2.m_x;
@@ -426,12 +791,17 @@ namespace GrowableOverhaul
                     }
                     if (fillPos.m_x < 63)
                     {
-                        ZoneTool.FillPos item3 = fillPos;
+                        FillPos item3 = fillPos;
                         item3.m_x += 1;
-                        if ((this.m_fillBuffer1[(int)item3.m_z] & 1uL << (int)item3.m_x) != 0uL)
+                        if ((GetFillBuffer1(_this)[(int)item3.m_z] & 1uL << (int)item3.m_x) != 0uL)
                         {
-                            this.m_fillPositions.Add(item3);
-                            this.m_fillBuffer1[(int)item3.m_z] &= ~(1uL << (int)item3.m_x);
+                            fillPositions.Add(item3);
+
+                            //changed
+                            fillBuffer1 = GetFillBuffer1(_this);
+                            fillBuffer1[(int)item3.m_z] &= ~(1uL << (int)item3.m_x);
+                            AssignFillBuffer1(_this, fillBuffer1);
+
                             if ((int)item3.m_x > num14)
                             {
                                 num14 = (int)item3.m_x;
@@ -440,12 +810,17 @@ namespace GrowableOverhaul
                     }
                     if (fillPos.m_z < 63)
                     {
-                        ZoneTool.FillPos item4 = fillPos;
+                        FillPos item4 = fillPos;
                         item4.m_z += 1;
-                        if ((this.m_fillBuffer1[(int)item4.m_z] & 1uL << (int)item4.m_x) != 0uL)
+                        if ((GetFillBuffer1(_this)[(int)item4.m_z] & 1uL << (int)item4.m_x) != 0uL)
                         {
-                            this.m_fillPositions.Add(item4);
-                            this.m_fillBuffer1[(int)item4.m_z] &= ~(1uL << (int)item4.m_x);
+                            fillPositions.Add(item4);
+
+                            //changed
+                            fillBuffer1 = GetFillBuffer1(_this);
+                            fillBuffer1[(int)item4.m_z] &= ~(1uL << (int)item4.m_x);
+                            AssignFillBuffer1(_this, fillBuffer1);
+
                             if ((int)item4.m_z > num15)
                             {
                                 num15 = (int)item4.m_z;
@@ -454,21 +829,39 @@ namespace GrowableOverhaul
                     }
                 }
                 for (int m = 0; m < 64; m++)
+
                 {
-                    this.m_fillBuffer1[m] = 0uL;
+                    fillBuffer1 = GetFillBuffer1(_this);
+                    fillBuffer1[m] = 0uL;
+                    AssignFillBuffer1(_this, fillBuffer1);
+
                 }
-                for (int n = 0; n < this.m_fillPositions.m_size; n++)
+                for (int n = 0; n < fillPositions.m_size; n++)
                 {
-                    ZoneTool.FillPos fillPos2 = this.m_fillPositions.m_buffer[n];
-                    this.m_fillBuffer1[(int)fillPos2.m_z] |= 1uL << (int)fillPos2.m_x;
+                    FillPos fillPos2 = fillPositions.m_buffer[n];
+
+                    fillBuffer1 = GetFillBuffer1(_this);
+                    fillBuffer1[(int)fillPos2.m_z] |= 1uL << (int)fillPos2.m_x;
+                    AssignFillBuffer1(_this, fillBuffer1);
+
                 }
                 return true;
             }
             for (int num16 = 0; num16 < 64; num16++)
             {
-                this.m_fillBuffer1[num16] = 0uL;
+                var fillBuffer1 = GetFillBuffer1(_this);
+                fillBuffer1[num16] = 0uL;
+                AssignFillBuffer1(_this, fillBuffer1);
             }
+            //Debug.Log("CalculateFillBuffer End");
             return false;
+        }
+
+        //Copied from ZoneTool. Only used in CalculateFillBuffer, so it was easier to just copy it. 
+        private struct FillPos
+        {
+            public byte m_x;
+            public byte m_z;
         }
 
         private static void CalculateFillBuffer(ZoneTool _this, Vector3 position, Vector3 direction, float angle, ushort blockIndex, ref ZoneBlock block, ExtendedItemClass.Zone requiredZone, bool occupied1, bool occupied2)
@@ -520,8 +913,10 @@ namespace GrowableOverhaul
         //Called only from simulationstep
         private static void ApplyBrush(ZoneTool _this)
         {
-            float num = this.m_brushSize * 0.5f;
-            Vector3 mousePosition = this.m_mousePosition;
+            float num = _this.m_brushSize * 0.5f;
+
+            Vector3 mousePosition = GetMousePosition(_this);
+
             float num2 = mousePosition.x - num;
             float num3 = mousePosition.z - num;
             float num4 = mousePosition.x + num;
@@ -596,7 +991,7 @@ namespace GrowableOverhaul
             data.RefreshZoning(blockIndex);
             if (!m_zoning)
                 return;
-            UsedZone(_this, _this.m_zone);
+            UsedZone(ExtendedZone);
         }
 
         /// <summary>
@@ -626,15 +1021,15 @@ namespace GrowableOverhaul
             occupied2 = block.IsOccupied2(num1 + 4, num2 + 4);
         }
 
-        [RedirectMethod(false)]
+        [RedirectMethod(true)]
         private static void ApplyFill(ZoneTool _this)
         {
-            if (!this.m_validPosition)
+            if (! GetValidPosition(_this) )
             {
                 return;
             }
-            Vector3 mousePosition = this.m_mousePosition;
-            Vector3 mouseDirection = this.m_mouseDirection;
+            Vector3 mousePosition = GetMousePosition(_this);
+            Vector3 mouseDirection = GetMouseDirection(_this);
             float angle = Mathf.Atan2(-mouseDirection.x, mouseDirection.z);
             float num = mousePosition.x - 256f;
             float num2 = mousePosition.z - 256f;
@@ -665,7 +1060,7 @@ namespace GrowableOverhaul
                         num9 = instance.m_blocks.m_buffer[(int)num9].m_nextGridBlock;
                         if (++num10 >= 49152)
                         {
-                            CODebugBase<LogChannel>.Error(LogChannel.Core, "Invalid list detected!\n" + Environment.StackTrace);
+                            CODebugBase<LogChannel>.Error(LogChannel.Core, "Invalid list detected!\n" + "Environment.StackTrace");
                             break;
                         }
                     }
@@ -673,9 +1068,9 @@ namespace GrowableOverhaul
             }
             if (flag)
             {
-                if (this.m_zoning)
+                if (GetZoning(_this))
                 {
-                    UsedZone(this.m_zone);
+                    UsedZone(ExtendedZone);
                 }
                 EffectInfo fillEffect = instance.m_properties.m_fillEffect;
                 if (fillEffect != null)
@@ -743,12 +1138,12 @@ namespace GrowableOverhaul
             return true;
         }
 
-        [RedirectMethod(false)]
+        [RedirectMethod(true)]
         private static void ApplyZoning(ZoneTool _this)
         {
-            Vector2 a = VectorUtils.XZ(this.m_startPosition);
-            Vector2 b = VectorUtils.XZ(this.m_mousePosition);
-            Vector2 a2 = VectorUtils.XZ(this.m_startDirection);
+            Vector2 a = VectorUtils.XZ( GetStartPosition(_this));
+            Vector2 b = VectorUtils.XZ(GetMousePosition(_this));
+            Vector2 a2 = VectorUtils.XZ(GetStartDirection(_this));
             Vector2 a3 = new Vector2(a2.y, -a2.x);
             float num = Mathf.Round(((b.x - a.x) * a2.x + (b.y - a.y) * a2.y) * 0.125f) * 8f;
             float num2 = Mathf.Round(((b.x - a.x) * a3.x + (b.y - a.y) * a3.y) * 0.125f) * 8f;
@@ -790,7 +1185,7 @@ namespace GrowableOverhaul
                         num9 = instance.m_blocks.m_buffer[(int)num9].m_nextGridBlock;
                         if (++num10 >= 49152)
                         {
-                            CODebugBase<LogChannel>.Error(LogChannel.Core, "Invalid list detected!\n" + Environment.StackTrace);
+                            CODebugBase<LogChannel>.Error(LogChannel.Core, "Invalid list detected!\n" );
                             break;
                         }
                     }
@@ -798,9 +1193,10 @@ namespace GrowableOverhaul
             }
             if (flag)
             {
-                if (this.m_zoning)
+                if (GetZoning(_this))
                 {
-                    UsedZone(this.m_zone);
+                    //pass new itemclass field
+                    UsedZone(ExtendedZone);
                 }
                 EffectInfo fillEffect = instance.m_properties.m_fillEffect;
                 if (fillEffect != null)
@@ -862,28 +1258,29 @@ namespace GrowableOverhaul
             return true;
         }
 
-        [RedirectMethod(false)]
+        [RedirectMethod(true)]
         private static void OnToolUpdate(ZoneTool _this)
         {
-            ItemClass.Zone zone;
-            if (this.m_zone <= ItemClass.Zone.Unzoned || this.m_dezoning)
+            //Change to new itemclass
+            ExtendedItemClass.Zone zone;
+            if (ExtendedZone <= ExtendedItemClass.Zone.Unzoned || GetDezoning(_this))
             {
-                zone = ItemClass.Zone.Unzoned;
+                zone = ExtendedItemClass.Zone.Unzoned;
             }
             else
             {
-                zone = this.m_zone;
+                zone = ExtendedZone;
             }
-            if (this.m_zoneCursors != null && (ItemClass.Zone)this.m_zoneCursors.Length > zone)
+            if (_this.m_zoneCursors != null && (ExtendedItemClass.Zone)_this.m_zoneCursors.Length > zone)
             {
-                base.ToolCursor = this.m_zoneCursors[(int)zone];
+                //AssignToolCursor(ref _this, _this.m_zoneCursors[(int)zone]) ;
             }
         }
 
-        [RedirectMethod(false)]
-        private static void RenderOverlay(RenderManager.CameraInfo cameraInfo)
+        [RedirectMethod(true)]
+        private static void RenderOverlay(ZoneTool _this, RenderManager.CameraInfo cameraInfo)
         {
-            while (!Monitor.TryEnter(this.m_dataLock, SimulationManager.SYNCHRONIZE_TIMEOUT))
+            while (!Monitor.TryEnter(GetDataLock(_this), SimulationManager.SYNCHRONIZE_TIMEOUT))
             {
             }
             bool zoning;
@@ -895,25 +1292,32 @@ namespace GrowableOverhaul
             Vector3 mouseDirection;
             try
             {
-                zoning = this.m_zoning;
-                dezoning = this.m_dezoning;
-                validPosition = this.m_validPosition;
-                startPosition = this.m_startPosition;
-                mousePosition = this.m_mousePosition;
-                startDirection = this.m_startDirection;
-                mouseDirection = this.m_mouseDirection;
+                zoning = GetZoning(_this);
+                dezoning = GetDezoning(_this);
+                validPosition = GetValidPosition(_this);
+                startPosition = GetStartPosition(_this);
+                mousePosition = GetMousePosition(_this);
+                startDirection = GetStartDirection(_this);
+                mouseDirection = GetMouseDirection(_this);
+
                 for (int i = 0; i < 64; i++)
                 {
-                    this.m_fillBuffer3[i] = this.m_fillBuffer2[i];
+                    var fillbuffer3 = GetFillBuffer3(_this);
+
+                    fillbuffer3[i] = GetFillBuffer2(_this)[i];
+
+                    AssignFillBuffer3(_this, fillbuffer3);
                 }
             }
             finally
             {
-                Monitor.Exit(this.m_dataLock);
+                Monitor.Exit(GetDataLock(_this));
             }
-            if ((!zoning && !dezoning && !validPosition) || !Cursor.visible || this.m_toolController.IsInsideUI)
+            if ((!zoning && !dezoning && !validPosition) || !Cursor.visible || GettoolController(_this).IsInsideUI)
             {
-                base.RenderOverlay(cameraInfo);
+
+                RenderOverlay2(_this, cameraInfo);
+
                 return;
             }
             Color color;
@@ -921,16 +1325,20 @@ namespace GrowableOverhaul
             {
                 color = Singleton<ZoneManager>.instance.m_properties.m_activeColor;
             }
-            else if (this.m_zone <= ItemClass.Zone.Unzoned || dezoning)
+            else if (ExtendedZone <= ExtendedItemClass.Zone.Unzoned || dezoning)
             {
                 color = Singleton<ZoneManager>.instance.m_properties.m_unzoneColor;
             }
             else
             {
+                //color = new Color { r = 1, g = 1, b = 1, a = 1 };
                 //Grab zone colors from new color array. 
-                color = Singleton<ZoneManager>.instance.m_properties.m_zoneColors[(int)this.m_zone];
+                Debug.Log("Color array index is: " + (int)ExtendedZone);
+                color = NewZoneColorManager.NewColors[(int)ExtendedZone];
+
+            //
             }
-            switch (this.m_mode)
+            switch (_this.m_mode)
             {
                 case ZoneTool.Mode.Select:
                     {
@@ -962,7 +1370,7 @@ namespace GrowableOverhaul
                     {
                         ToolManager expr_368_cp_0 = Singleton<ToolManager>.instance;
                         expr_368_cp_0.m_drawCallData.m_overlayCalls = expr_368_cp_0.m_drawCallData.m_overlayCalls + 1;
-                        Singleton<RenderManager>.instance.OverlayEffect.DrawCircle(cameraInfo, color, mousePosition, this.m_brushSize, -1f, 1025f, false, true);
+                        Singleton<RenderManager>.instance.OverlayEffect.DrawCircle(cameraInfo, color, mousePosition, _this.m_brushSize, -1f, 1025f, false, true);
                         break;
                     }
                 case ZoneTool.Mode.Fill:
@@ -970,11 +1378,11 @@ namespace GrowableOverhaul
                         Vector3 a4 = mouseDirection;
                         Vector3 a5 = new Vector3(a4.z, 0f, -a4.x);
                         int num5 = -1;
-                        ulong num6 = this.m_fillBuffer3[0];
+                        ulong num6 = GetFillBuffer3(_this)[0];
                         for (int j = 0; j <= 64; j++)
                         {
                             int num7 = -1;
-                            if (j == 64 || this.m_fillBuffer3[j] != num6)
+                            if (j == 64 || GetFillBuffer3(_this)[j] != num6)
                             {
                                 if (num5 != -1)
                                 {
@@ -1015,32 +1423,67 @@ namespace GrowableOverhaul
                                         }
                                     }
                                 }
-                                if (j != 64 && this.m_fillBuffer3[j] != 0uL)
+                                if (j != 64 && GetFillBuffer3(_this)[j] != 0uL)
                                 {
                                     num5 = j;
-                                    num6 = this.m_fillBuffer3[j];
+                                    num6 = GetFillBuffer3(_this)[j];
                                 }
                                 else
                                 {
                                     num5 = -1;
                                 }
                             }
-                            else if (num5 == -1 && this.m_fillBuffer3[j] != 0uL)
+                            else if (num5 == -1 && GetFillBuffer3(_this)[j] != 0uL)
                             {
                                 num5 = j;
-                                num6 = this.m_fillBuffer3[j];
+                                num6 = GetFillBuffer3(_this)[j];
                             }
                         }
                         break;
                     }
             }
-            base.RenderOverlay(cameraInfo);
+            RenderOverlay2(_this, cameraInfo);
+        }
+
+        private static void RenderOverlay2(ZoneTool _this, RenderManager.CameraInfo cameraInfo)
+        {
+            if (!GettoolController(_this).IsInsideUI && Cursor.visible)
+            {
+                GettoolController(_this).RenderBrush(cameraInfo);
+            }
         }
 
         //called from ApplyBrush, ApplyFill, ApplyZoning
-        private static void UsedZone(ZoneTool _this, ItemClass.Zone zone)
+        private static void UsedZone(ExtendedItemClass.Zone zone)
         {
-            Debug.Log($"Dummy code: {zone}");
+
+            if (zone != ExtendedItemClass.Zone.None)
+            {
+                ZoneManager instance = Singleton<ZoneManager>.instance;
+
+                if (instance.m_zoneNotUsed.Length == 8) {
+                    //instance.m_zoneNotUsed = new ZoneTypeGuide[16];
+                } 
+                instance.m_zonesNotUsed.Disable();
+               // instance.m_zoneNotUsed[(int)zone].Disable();
+
+
+                switch (zone)
+                {
+                    case ExtendedItemClass.Zone.ResidentialLow:
+                    case ExtendedItemClass.Zone.ResidentialHigh:
+                        instance.m_zoneDemandResidential.Deactivate();
+                        break;
+                    case ExtendedItemClass.Zone.CommercialLow:
+                    case ExtendedItemClass.Zone.CommercialHigh:
+                        instance.m_zoneDemandCommercial.Deactivate();
+                        break;
+                    case ExtendedItemClass.Zone.Industrial:
+                    case ExtendedItemClass.Zone.Office:
+                        instance.m_zoneDemandWorkplace.Deactivate();
+                        break;
+                }
+            }
         }
     }
 }
