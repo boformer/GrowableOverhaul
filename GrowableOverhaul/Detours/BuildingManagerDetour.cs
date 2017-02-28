@@ -12,26 +12,6 @@ namespace GrowableOverhaul
     public static class BuildingManagerDetour
     {
 
-        public enum ServiceIndex
-
-        {
-            ResLow,
-            ResMed,
-            ResHigh,
-
-            ComLow,
-            ComHigh,
-
-            OffLow,
-            OffHigh,
-
-            IndLow,
-            IndHigh,
-
-            IndProc,
-            IndExt
-
-        }
 
         private static FieldInfo m_areaBuildings_field;
         private static FieldInfo m_buildingsRefreshed_field;

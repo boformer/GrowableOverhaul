@@ -38,7 +38,7 @@ namespace GrowableOverhaul
                 else if (comp.name == "ResidentialLow") ZoneToolDetour.ExtendedZone = ExtendedItemClass.Zone.ResidentialLow;
                 else if (comp.name == "ResidentialHigh") ZoneToolDetour.ExtendedZone = ExtendedItemClass.Zone.ResidentialMedium;
 
-                else if (comp.name == "CommercialHigh") ZoneToolDetour.ExtendedZone = ExtendedItemClass.Zone.CommercialLow;
+                else if (comp.name == "CommercialLow") ZoneToolDetour.ExtendedZone = ExtendedItemClass.Zone.CommercialLow;
                 else if (comp.name == "CommercialHigh") ZoneToolDetour.ExtendedZone = ExtendedItemClass.Zone.CommercialHigh;
 
 

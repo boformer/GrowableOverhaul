@@ -57,6 +57,7 @@
     <Compile Include="Detours\BuildingDetour.cs" />
     <Compile Include="Detours\BuildingManagerDetour.cs" />
     <Compile Include="Detours\BuildingToolDetour.cs" />
+    <Compile Include="Detours\TerrainPatchDetour.cs" />
     <Compile Include="Detours\ZoningPanelDetour.cs" />
     <Compile Include="ExtendedItemClass.cs" />
     <Compile Include="InputThreadingExtension.cs" />
@@ -78,6 +79,7 @@
     <Compile Include="Detours\ZoneManagerDetour.cs" />
     <Compile Include="Detours\ZoneToolDetour.cs" />
     <Compile Include="Util.cs" />
+    <Compile Include="ZonePropertiesDetour.cs" />
   </ItemGroup>
   <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

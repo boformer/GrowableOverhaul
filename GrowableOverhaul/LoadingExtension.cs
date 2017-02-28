@@ -38,8 +38,33 @@ namespace GrowableOverhaul
 
             refButton = uiView.FindUIComponent<UIButton>("ResidentialLow");
 
-            NewZoneColorManager.SetNewColors();
+            //NewZoneColorManager.SetNewColors();
             //TerrainPatch.Refresh();
+
+            //Shader testshaderl = new Shader();
+
+            //ZoneProperties newprops = new ZoneProperties();
+
+            //newprops.m_zoneColors = NewZoneColorManager.NewColors;
+
+            //newprops.m_zoneShader = Singleton<ZoneManager>.instance.m_properties.m_zoneShader;
+
+            //Singleton<ZoneManager>.instance.InitializeProperties(newprops);
+
+            //ZoneManager.instance.m_zoneMaterial.SetColor(10, NewZoneColorManager.NewColors[9]);
+            //ZoneManager.instance.m_zoneMaterial.SetColor(9, NewZoneColorManager.NewColors[9]);
+            //ZoneManager.instance.m_zoneMaterial.SetColor(8, NewZoneColorManager.NewColors[9]);
+            //ZoneManager.instance.m_zoneMaterial.SetColor("_ZoneColor8", NewZoneColorManager.NewColors[10]);
+            //ZoneManager.instance.m_zoneMaterial.SetColor("_ZoneColor9", NewZoneColorManager.NewColors[10]);
+            //ZoneManager.instance.m_zoneMaterial.SetColor("_ZoneColor10", NewZoneColorManager.NewColors[10]);
+
+            var color2 = ZoneManager.instance.m_zoneMaterial.GetColor(3);
+
+            Debug.Log("Zone color 3 is: " + color2);
+
+            //var  array ZoneManager.instance.m_zoneMaterial.GetColor();
+            //ZoneProperties.DestroyObject();
+
 
             Debug.Log("GrowableOverhaul OnLevelLoaded!");
 
