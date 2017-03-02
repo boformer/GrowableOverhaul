@@ -10,11 +10,13 @@ using System.Reflection;
 
 namespace GrowableOverhaul
 {
-    //Reason for detour: To add additional zoning option buttons to panel. 
+    //Reason for detour: To add additional zoning option buttons to panel. This is a lazy test. 
     [TargetType(typeof(ZoningPanel))]
 
     public class ZoningPanelDetour
     {
+        public static Redirector OnButtonClickedRedirector = null;
+
         //When button is clicked, pass zoning tool new zone type 
         [RedirectMethod(true)]
         public static void OnButtonClicked(ZoningPanel _this, UIComponent comp)
@@ -22,31 +24,27 @@ namespace GrowableOverhaul
 
             ZoneTool zoneTool = ToolsModifierControl.SetTool<ZoneTool>();
             {
-
-                //MethodInfo ShowZoningOptionPanel_field = typeof(GeneratedScrollPanel).GetMethod("ShowZoningOptionPanel", BindingFlags.NonPublic | BindingFlags.Instance);
-                //ShowZoningOptionPanel_field.Invoke(ZoningPanel., null);
-
-                //GeneratedScrollPanel.ShowZoningOptionPanel();
-
-                //pass tone tool new zone types
-                //zoneTool.m_zone = ItemClass.Zone.Office;
-                //zoneTool.m_zone = ZoningPanel.kZones[comp.zOrder].enumValue;
                 if (comp.name == "Industrial") ZoneToolDetour.ExtendedZone = ExtendedItemClass.Zone.Industrial;
-
                 else if (comp.name == "Office") ZoneToolDetour.ExtendedZone = ExtendedItemClass.Zone.OfficeHigh;
-
                 else if (comp.name == "ResidentialLow") ZoneToolDetour.ExtendedZone = ExtendedItemClass.Zone.ResidentialLow;
                 else if (comp.name == "ResidentialHigh") ZoneToolDetour.ExtendedZone = ExtendedItemClass.Zone.ResidentialMedium;
-
-                else if (comp.name == "CommercialLow") ZoneToolDetour.ExtendedZone = ExtendedItemClass.Zone.CommercialLow;
+                else if (comp.name == "CommercialLow") ZoneToolDetour.ExtendedZone = ExtendedItemClass.Zone.ResidentialHigh;
                 else if (comp.name == "CommercialHigh") ZoneToolDetour.ExtendedZone = ExtendedItemClass.Zone.CommercialHigh;
-
-
-                else ZoneToolDetour.ExtendedZone = ExtendedItemClass.Zone.Test;
-
+                else ZoneToolDetour.ExtendedZone = ExtendedItemClass.Zone.NewZone;
             }
+
+            OnButtonClickedRedirector.Revert();
+            OnButtonClickedAlt(_this, comp);
+            OnButtonClickedRedirector.Apply();
 
 
         }
+
+        [RedirectReverse(true)]
+        private static void OnButtonClickedAlt(ZoningPanel _this, UIComponent comp)
+        {
+            Debug.Log("Yay");
+        }
+
     }
 }

@@ -6,6 +6,7 @@ using UnityEngine;
 
 namespace GrowableOverhaul
 {
+    //Reason for detour: Add some new global colors for new zones. 
     [TargetType(typeof(ZoneProperties))]
     class ZonePropertiesDetour
     {
@@ -16,6 +17,7 @@ namespace GrowableOverhaul
             for (int i = 0; i < NewZoneColorManager.NewColors.Length; i++)
             {
                 Shader.SetGlobalColor("_ZoneColor" + i, NewZoneColorManager.NewColors[i].linear);
+                //Debug.Log("Set new Shader " + i + NewZoneColorManager.NewColors[i]);
             }
 
             Shader.SetGlobalColor("_ZoneFillColor", _this.m_fillColor.linear);

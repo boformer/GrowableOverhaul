@@ -2,16 +2,9 @@
 using ColossalFramework.Math;
 using GrowableOverhaul.Redirection;
 using UnityEngine;
-using System.Reflection;
+
 using PloppableRICO;
 using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using ColossalFramework.Plugins;
-using ColossalFramework.UI;
-using ICities;
-using UnityEngine;
 
 using BuildingThemes;
 
@@ -725,7 +718,9 @@ namespace GrowableOverhaul
             _this.m_shared = shared;
         }
 
-
+        /// <summary>
+        /// If its a RICO asset, test to see if it was plopped or grown. Only clear zoning for plopped assets. 
+        /// </summary>
         private static bool ClearOccupiedZoning(BuildingInfo prefab, Building building)
         {
             //Debug.Log("ClearOccupiedZoning Called for ZoneBlock");
@@ -1094,7 +1089,7 @@ namespace GrowableOverhaul
         }
 
         /// <summary>
-        /// Sets a cell to a zone type.
+        /// Sets a cell to a zone type. Now completly reduntant, and could possibly be removed. 
         /// </summary>
         /// <param name="_this"></param>
         /// <param name="x"></param>
@@ -1109,7 +1104,6 @@ namespace GrowableOverhaul
             return SetZoneDeep(ref _this, FindBlockId(ref _this), x, z, (ExtendedItemClass.Zone)zone);
         }
 
-        
         public static bool SetZoneDeep(ref ZoneBlock _this, ushort blockID, int x, int z, ExtendedItemClass.Zone zone)
         {
             if (zone == ExtendedItemClass.Zone.Distant)
@@ -1507,9 +1501,11 @@ namespace GrowableOverhaul
             int num6 = (zonesModified.m_maxX - zonesModified.m_minX << 2) + 1;
             float num7 = 4f;
             num7 *= num7;
+
+            //changed. 
             byte zone2 = (byte)(zone + ((!occupied) ? 0 : 16));
 
-            Debug.Log("Zone Byte is:" + zone2);
+            //Debug.Log("Zone Byte is:" + zone2);
 
             byte angle2 = (byte)(Mathf.RoundToInt(angle * 162.974655f) & 255);
             for (int i = num2; i <= num4; i++)
@@ -1580,6 +1576,7 @@ namespace GrowableOverhaul
             }
         }
 
+        //To lazy to call via reflection, so lets just copy it.
         private static float SqrOffset(Vector2 a, Vector2 b, Vector2 p)
         {
             float num = b.x - a.x;

@@ -7,6 +7,11 @@ using System.Threading;
 namespace GrowableOverhaul
 {
     [TargetType(typeof(ZoneTool))]
+    /// <summary>
+    /// This code is a horrific mess. There are far more reflection calls then needed. 
+    /// The idea was to just get it working, and clean it up later. 
+    /// The methods needed to be detoured so they passed along the new ExtendedItemclass, and read/write to the extended zone buffers. 
+    /// </summary>
     public static class ZoneToolDetour
     {
         //This is set from ZoningPanel when player clicks on zoning button. Change all refs from m_zone to this. 
@@ -15,6 +20,7 @@ namespace GrowableOverhaul
         //only read and assigned by CalculateFillBuffer. 
         private static FastList<FillPos> fillPositions;
 
+        //Lets grab private fields!
         private static FieldInfo m_dataLock_field;
 
         private static FieldInfo m_fillBuffer1_field;
@@ -43,8 +49,7 @@ namespace GrowableOverhaul
 
         private static FieldInfo ToolCursor_field;
 
-
-
+        //This needs to be redone. Far more reflection calls than needed!
         private static void FindFieldInfos()
         {
             if (m_fillBuffer1_field == null || m_zoning_field == null || m_dezoning_field == null)
@@ -80,7 +85,6 @@ namespace GrowableOverhaul
                 ToolCursor_field = typeof(ZoneTool).GetField("ToolCursor", flags);
             }
         }
-
 
         private static ToolController GettoolController(ZoneTool _this)
         {
@@ -182,7 +186,6 @@ namespace GrowableOverhaul
             m_mousePosition_field.SetValue(_this, data);
         }
 
-
         private static Vector3 GetCameraDirection(ZoneTool _this)
         {
             FindFieldInfos();
@@ -221,7 +224,6 @@ namespace GrowableOverhaul
             FindFieldInfos();
             ToolCursor_field.SetValue(_this, data);
         }
-
 
 
         //Begin Detours!
@@ -856,8 +858,10 @@ namespace GrowableOverhaul
             //Debug.Log("CalculateFillBuffer End");
             return false;
         }
-
-        //Copied from ZoneTool. Only used in CalculateFillBuffer, so it was easier to just copy it. 
+        
+        /// <summary>
+        /// Copied from ZoneTool. Only used in CalculateFillBuffer, so it was easier to just copy it
+        /// </summary>
         private struct FillPos
         {
             public byte m_x;
@@ -1277,6 +1281,9 @@ namespace GrowableOverhaul
             }
         }
 
+        /// <summary>
+        /// Possibly reduntant. Itemclass.unzoned should == ExtendedItemclass.unzoned, and we can assign a larger array to ZoneProperties. 
+        /// </summary>
         [RedirectMethod(true)]
         private static void RenderOverlay(ZoneTool _this, RenderManager.CameraInfo cameraInfo)
         {
@@ -1453,7 +1460,9 @@ namespace GrowableOverhaul
             }
         }
 
-        //called from ApplyBrush, ApplyFill, ApplyZoning
+        /// <summary>
+        /// This has somthing to do with the zone unlocks. Its broken for now, and will need to be fixed later. 
+        /// </summary>
         private static void UsedZone(ExtendedItemClass.Zone zone)
         {
 
