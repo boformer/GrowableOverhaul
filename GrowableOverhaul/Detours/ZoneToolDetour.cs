@@ -1340,7 +1340,7 @@ namespace GrowableOverhaul
             {
                 //color = new Color { r = 1, g = 1, b = 1, a = 1 };
                 //Grab zone colors from new color array. 
-                Debug.Log("Color array index is: " + (int)ExtendedZone);
+                //Debug.Log("Color array index is: " + (int)ExtendedZone);
                 color = NewZoneColorManager.NewColors[(int)ExtendedZone];
 
             //

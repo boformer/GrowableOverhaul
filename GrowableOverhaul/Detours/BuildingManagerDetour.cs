@@ -4,6 +4,7 @@ using GrowableOverhaul.Redirection;
 using UnityEngine;
 using System.Reflection;
 using ColossalFramework.Math;
+using PloppableRICO;
 
 namespace GrowableOverhaul
 {
@@ -12,6 +13,7 @@ namespace GrowableOverhaul
     public static class BuildingManagerDetour
     {
 
+        private static FastList<ushort>[] areaBuildings = new FastList<ushort>[100000];
 
         private static FieldInfo m_areaBuildings_field;
         private static FieldInfo m_buildingsRefreshed_field;
@@ -44,79 +46,65 @@ namespace GrowableOverhaul
             m_buildingsRefreshed_field.SetValue(_this, true);
         }
 
-        //This methods reads all prefabs, and groups them based on service, sub service, size, ect... Detoured to account for larger lots
-        [RedirectMethod(true)]
-        public static void ApplyRefreshBuildings(BuildingManager _this, BuildingInfo[] infos, ushort[] indices, int style)
+        //Grab prefab density from RICO mod. 
+        private static int GetDensity(BuildingInfo prefab)
+        {
+            //This is slow, and I know there are better ways to look this up. 
+            foreach (var buildingData in RICOPrefabManager.prefabHash.Values)
+            {
+                if (buildingData.prefab == prefab) {
+
+                    return buildingData.density;
+                }
+            }
+                return 0;
+        }
+
+        //This methods reads all prefabs, and groups them based on service, sub service, size, ect... Detoured to account for larger lots and densities. 
+        //called on scene load, and again from the RICO mod. 
+        public static void ApplyExtendedRefreshBuildings()
         {
 
-        /*
-        Read RICO Data and assign new zones from that. Rather then pulling zones form prefab, grab it from that. 
-        */
+            int areaBuildingsLength = areaBuildings.Length;
 
-        //clear array, and assign 10x larger array to hold larger values. Original was 3040. 
-           FastList<ushort>[] areaBuildings = new FastList<ushort>[300000];
-
-
-            for (int i = 0; i < infos.Length; i++)
+            for (int i = 0; i < areaBuildingsLength; i++)
             {
-                BuildingInfo info = infos[i];
-                if (info != null && info.m_class.m_service != ItemClass.Service.None && info.m_placementStyle == ItemClass.Placement.Automatic && (!info.m_dontSpawnNormally || style > 0))
+                areaBuildings[i] = null;
+            }
+            int prefabCount = PrefabCollection<BuildingInfo>.PrefabCount();
+            for (int j = 0; j < prefabCount; j++)
+            {
+                BuildingInfo prefab = PrefabCollection<BuildingInfo>.GetPrefab((uint)j);
+
+                int style = 0;
+                if (prefab != null && prefab.m_class.m_service != ItemClass.Service.None && prefab.m_placementStyle == ItemClass.Placement.Automatic && (!prefab.m_dontSpawnNormally || style > 0))
                 {
-                    int privateServiceIndex = ItemClass.GetPrivateServiceIndex(info.m_class.m_service);
+                    int privateServiceIndex = ItemClass.GetPrivateServiceIndex(prefab.m_class.m_service);
                     if (privateServiceIndex != -1)
                     {  //modified to account for 8 deep lots. 
-                        if (info.GetWidth() < 1 || info.GetWidth() > 16) //was 4
+          
+                        if (prefab.GetWidth() < 1 || prefab.GetWidth() > 16) //was 4
                         {
-                            //removed so it wont stop execution. 
-                            /*
-                            ThreadHelper.dispatcher.Dispatch(delegate
-                            {
-                                CODebugBase<LogChannel>.Error(LogChannel.Core, string.Concat(new object[]
-                                {
-                            "Invalid width (",
-                            info.gameObject.name,
-                            "): ",
-                            info.m_cellWidth
-                                }), info.gameObject);
-                            });
-                            */
                             continue;
 
                         }//modified to account for 8 deep lots. 
-                        else if (info.GetLength() < 1 || info.GetLength() > 16) //was 4
-                        {
-                            //removed so it wont stop execution. 
-                            /*
-                            ThreadHelper.dispatcher.Dispatch(delegate
-                            {
-                                CODebugBase<LogChannel>.Error(LogChannel.Core, string.Concat(new object[]
-                                {
-                            "Invalid length (",
-                            info.gameObject.name,
-                            "): ",
-                            info.m_cellLength
-                                }), info.gameObject);
-                            });
-                            */
+                        else if (prefab.GetLength() < 1 || prefab.GetLength() > 16) //was 4
+                        {                           
                             continue;
                         }
                         else
                         {
-                            //int areaIndex = GetAreaIndex(info.m_class.m_service, info.m_class.m_subService, 
-                            //info.m_class.m_level, info.GetWidth(), info.GetLength(), info.m_zoningMode);
-
                             //For testing, lets make all assets level 1. 
+                            int areaIndex = GetExtendedAreaIndex(prefab.m_class.m_service, prefab.m_class.m_subService, 
+                            ItemClass.Level.Level1, GetDensity(prefab), prefab.GetWidth(), prefab.GetLength(), prefab.m_zoningMode);
 
-                            int areaIndex = GetAreaIndex(info.m_class.m_service, info.m_class.m_subService, 
-                            ItemClass.Level.Level1, info.GetWidth(), info.GetLength(), info.m_zoningMode);
-
-                            Debug.Log(info.name + " AreaIndex is: " + areaIndex);
+                            Debug.Log(prefab.name + " AreaIndex is: " + areaIndex);
 
                             if (areaBuildings[areaIndex] == null)
                             {
                                 areaBuildings[areaIndex] = new FastList<ushort>();
                             }
-                            areaBuildings[areaIndex].Add(indices[i]);
+                            areaBuildings[areaIndex].Add((ushort)j);
                         }
                     }
                 }
@@ -160,9 +148,11 @@ namespace GrowableOverhaul
                     }
                 }
             }
-            for (int index = 0; index < infos.Length; index++)
+            for (int index = 0; index < prefabCount; index++)
             {
-                BuildingInfo info = infos[index];
+
+                BuildingInfo info = PrefabCollection<BuildingInfo>.GetPrefab((uint)index);
+
 
                 if (info != null && info.m_class.m_service != ItemClass.Service.None && info.m_placementStyle == ItemClass.Placement.Automatic && !info.m_dontSpawnNormally)
                 {
@@ -207,31 +197,22 @@ namespace GrowableOverhaul
                                 }
                                 if (info.m_class.m_level < level2)
                                 {
-                                    int areaIndex2 = GetAreaIndex(info.m_class.m_service, info.m_class.m_subService, info.m_class.m_level + 1, info.GetWidth(), info.GetLength(), info.m_zoningMode);
+                                    int areaIndex2 = GetExtendedAreaIndex(info.m_class.m_service, info.m_class.m_subService, info.m_class.m_level + 1, GetDensity(info),
+                                        info.GetWidth(), info.GetLength(), info.m_zoningMode);
+
                                     if (areaBuildings[areaIndex2] == null)
                                     {
-                                        //removed so it wont stop execution. 
-                                        /*
-                                        ThreadHelper.dispatcher.Dispatch(delegate
-                                        {
-                                            CODebugBase<LogChannel>.Warn(LogChannel.Core, "Building cannot upgrade to next level: " + info.gameObject.name, info.gameObject);
-                                        });
-                                        */
                                         continue;
                                     }
                                 }
                                 if (info.m_class.m_level > level)
                                 {
-                                    int areaIndex3 = GetAreaIndex( info.m_class.m_service, info.m_class.m_subService, info.m_class.m_level - 1, info.m_cellWidth, info.m_cellLength, info.m_zoningMode);
+                                    int areaIndex3 = GetExtendedAreaIndex( info.m_class.m_service, info.m_class.m_subService, info.m_class.m_level - 1, GetDensity(info),
+                                        info.m_cellWidth, info.m_cellLength, info.m_zoningMode);
+
                                     if (areaBuildings[areaIndex3] == null)
                                     {
-                                        // removed so it wont stop execution.
-                                        /*
-                                        ThreadHelper.dispatcher.Dispatch(delegate
-                                        {
-                                            CODebugBase<LogChannel>.Warn(LogChannel.Core, "There is no building that would upgrade to: " + info.gameObject.name, info.gameObject);
-                                        });
-                                        */
+
                                         continue;
                                     }
                                 }
@@ -242,45 +223,118 @@ namespace GrowableOverhaul
             }
 
             //Save private values via reflection. 
-            SetBuildingsRefreshed(ref _this);
-            SetAreaBuildings(ref _this, areaBuildings);
+            //SetBuildingsRefreshed(ref _this);
+            //SetAreaBuildings(ref _this, areaBuildings);
         }
 
-        //Reason for detour: This class returns the index for the array that contains the prefab groups. Needs to account for larger lots. 
-        [RedirectMethod(true)]
-        private static int GetAreaIndex(ItemClass.Service service, ItemClass.SubService subService, ItemClass.Level level, int width, int length, BuildingInfo.ZoningMode zoningMode)
+        public static BuildingInfo GetExtendedRandomBuildingInfo(ref Randomizer r, ItemClass.Service service, ItemClass.SubService subService, ItemClass.Level level, int density, int width, int length, BuildingInfo.ZoningMode zoningMode, int style)
         {
 
+            int index = GetExtendedAreaIndex(service, subService, level, density, width, length, zoningMode);
 
-            Debug.Log("GetAreaDetour called");
+            Debug.Log("Requested index is: " + index);
+            FastList<ushort> fastList;
 
-            int privateSubServiceIndex = ItemClass.GetPrivateSubServiceIndex(subService);
-            int num;
-            if (privateSubServiceIndex != -1)
-            {
-                //modified from 8 to 16
-                num = 32 + privateSubServiceIndex;
+            //disable styles for now
+            
+            if (style > 0)
+            {/*
+                style--;
+                DistrictStyle districtStyle = Singleton<DistrictManager>.instance.m_Styles[style];
+                if (style <= this.m_styleBuildings.Length && this.m_styleBuildings[style] != null && this.m_styleBuildings[style].Count > 0 && districtStyle.AffectsService(service, subService, level))
+                {
+                    if (this.m_styleBuildings[style].ContainsKey(index))
+                    {
+                        fastList = this.m_styleBuildings[style][index];
+                    }
+                    else
+                    {
+                        fastList = null;
+                    }
+                }
+                else
+                {
+                    fastList = areaBuildings[index]; //pull areabuildings from this class
+                }
+                */
             }
             else
             {
-                num = ItemClass.GetPrivateServiceIndex(service);
+                fastList = areaBuildings[index];
             }
-            num = (int)(num * 5 + level);
-            if (zoningMode == BuildingInfo.ZoningMode.CornerRight)
+
+            fastList = areaBuildings[index];
+
+            if (fastList == null)
             {
-                //modified to 8. 
-                num = num * 16 + length - 1; //was 4
-                num = num * 16 + width - 1; //was 4
-                num = num * 2 + 1;
+                return null;
             }
-            else
+            if (fastList.m_size == 0)
             {
-                //modified to 8. 
-                num = num * 16 + width - 1; //was 4
-                num = num * 16 + length - 1; //was 4
-                num = (int)(num * 2 + zoningMode);
+                return null;
             }
-            return num;
+            index = r.Int32((uint)fastList.m_size);
+            return PrefabCollection<BuildingInfo>.GetPrefab((uint)fastList.m_buffer[index]);
+        }
+
+
+        //This returns the index for the array that contains the prefab groups. Needs to account for larger lots and new densities. 
+        private static int GetExtendedAreaIndex(ItemClass.Service service, ItemClass.SubService subService, ItemClass.Level level, int density, int width, int length, BuildingInfo.ZoningMode zoningMode)
+        {
+
+            int widthcount = 16;
+            int lengthcount = 16;
+
+            int modes = 3;
+            int leveloffset = widthcount * lengthcount * modes; //each level is 256 lots x 3 modes
+            int modeoffset = widthcount * lengthcount; //each mode bracket is 256
+
+            //lets manualy set service index offsets so we can better rearrange things later if need be
+
+            //int resoffset = 0;
+            //int comOffset = 16000;
+            //int indOffset = 26000;
+            //int offOffset = 36000;
+            //int indspecOffset = 46000;
+            //int comLesOffset = 58000;
+            //int comTourOffset = 62000;
+
+
+            int serviceoffset = 0;
+
+            if (service == ItemClass.Service.Residential) {
+                serviceoffset = 0;
+            }
+            else if (service == ItemClass.Service.Commercial) {
+
+                if (subService == ItemClass.SubService.CommercialLeisure) serviceoffset = 58000;
+                else if (subService == ItemClass.SubService.CommercialTourist) serviceoffset = 62000;
+                else  serviceoffset = 16000;
+            }
+            else if (service == ItemClass.Service.Industrial) {
+
+                if (subService == ItemClass.SubService.IndustrialGeneric) serviceoffset = 26000;
+                //if speical subservice, level 1 = extractor, level 2 = processing. 
+                else serviceoffset = 46000;
+
+            }
+            else if (service == ItemClass.Service.Office) {
+                serviceoffset = 36000;
+            }
+
+
+            int zonemode = (int)zoningMode;
+            int wealthlevel = (int)level;
+
+            int index = serviceoffset; //start at service offset
+
+            index = index + (density * (leveloffset * wealthlevel)) ; // add density offset
+            index = index + (leveloffset * wealthlevel); // add level offset
+            index = index + (modeoffset * zonemode); // add mode offset
+            index = index + width * widthcount; //width offset
+            index = index + length; //lenth offset
+
+            return index; 
         }
 
     }

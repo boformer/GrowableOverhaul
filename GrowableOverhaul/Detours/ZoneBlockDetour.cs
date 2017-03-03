@@ -2076,7 +2076,7 @@ namespace GrowableOverhaul
                 //This cuts down the total width. 
                 selectRandomRows:
 
-                Debug.Log("Total range width is: " + (RightRowRange - LeftRowRange));
+                //Debug.Log("Total range width is: " + (RightRowRange - LeftRowRange));
 
                 // the randomized row values
                 int randomLeftRowRange;
@@ -2208,7 +2208,7 @@ namespace GrowableOverhaul
 
                 int calculatedWidth = RightRowRange - LeftRowRange + 1;
 
-                Debug.Log("calculatedWidth after cut down is: " + calculatedWidth);
+                //Debug.Log("calculatedWidth after cut down is: " + calculatedWidth);
 
                 BuildingInfo.ZoningMode calculatedZoningMode = BuildingInfo.ZoningMode.Straight;
 
@@ -2283,20 +2283,29 @@ namespace GrowableOverhaul
                 }
 
                 // STEP 5: Assemble ItemClass information
+                int density = 0;
                 ItemClass.SubService subService = ItemClass.SubService.None;
                 ItemClass.Level level = ItemClass.Level.Level1;
                 ItemClass.Service service;
                 switch (zone)
                 {
                     case ExtendedItemClass.Zone.ResidentialLow:
+                        density = 0;
+                        service = ItemClass.Service.Residential;
+                        subService = ItemClass.SubService.ResidentialLow;
+                        break;
+                    case ExtendedItemClass.Zone.ResidentialMedium:
+                        density = 1;
                         service = ItemClass.Service.Residential;
                         subService = ItemClass.SubService.ResidentialLow;
                         break;
                     case ExtendedItemClass.Zone.ResidentialHigh:
+                        density = 2;
                         service = ItemClass.Service.Residential;
                         subService = ItemClass.SubService.ResidentialHigh;
                         break;
                     case ExtendedItemClass.Zone.CommercialLow:
+                        density = 0;
                         service = ItemClass.Service.Commercial;
                         subService = ItemClass.SubService.CommercialLow;
                         break;
@@ -2397,6 +2406,7 @@ namespace GrowableOverhaul
                             // industrial specialisations
                             if (zone == ExtendedItemClass.Zone.Industrial)
                             {
+                                //level 1 if processing, level 2 if extractor. Generic if no speicalizations. 
                                 ZoneBlock.GetIndustryType(buildingSpawnPos, out subService, out level);
                             }
                             // commercial specialisations
@@ -2411,24 +2421,14 @@ namespace GrowableOverhaul
 
                             // find random building
 
-                            Debug.Log("FinalDepth = " + finalDepth + " FinalWidth = " + finalWidth);
+                            //Get Density
 
-                            //info = Singleton<BuildingManager>.instance.GetRandomBuildingInfo(ref Singleton<SimulationManager>.instance.m_randomizer, 
-                            //service, subService, level, finalWidth, finalDepth, finalZoningMode, 0);
 
-                            /*
+                            //Debug.Log("FinalDepth = " + finalDepth + " FinalWidth = " + finalWidth);
 
-                            If BT active, let it handle all prefab spawning. It will reconize larger plots and new zone types. 
+                            info = BuildingManagerDetour.GetExtendedRandomBuildingInfo(ref Singleton<SimulationManager>.instance.m_randomizer, 
 
-                            */
-
-        
-
-                            //BuildingInfo buildingInfo = BuildingManagerDetour.GetRandomBuildingInfo_Spawn(vector6, ref Singleton<SimulationManager>.instance.m_randomizer,     
-                                //service, subService, level, finalWidth, finalDepth, finalZoningMode, style);
-
-                            info = Singleton<BuildingManager>.instance.GetRandomBuildingInfo(ref Singleton<SimulationManager>.instance.m_randomizer, 
-                                service, subService, ItemClass.Level.Level1, finalWidth, finalDepth, finalZoningMode, 0);
+                                service, subService, ItemClass.Level.Level1, density, finalWidth, finalDepth, finalZoningMode, 0);
 
 
                             //Debug.Log(info.name);

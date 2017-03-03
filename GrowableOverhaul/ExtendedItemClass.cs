@@ -16,22 +16,22 @@ namespace GrowableOverhaul
             Distant,
 
             ResidentialLow,           
-            ResidentialMedium, //new
+            ResidentialMedium,
             ResidentialHigh,
 
             CommercialLow,
+            CommercialMedium,
             CommercialHigh,
 
-            IndustrialHigh, //new
             Industrial,
+            IndustrialMedium,
+            IndustrialHigh,
 
             Office,
-            OfficeHigh, //new
+            OfficeMedium,
+            OfficeHigh, 
 
-            NewZone, //Room for 4 more! Perhaps farming and medium for office, industrial, and commercial?
-            NewZone2,
-            NewZone3,
-            NewZone4,
+            Farming,
 
             None = 15
         }
@@ -51,18 +51,18 @@ namespace GrowableOverhaul
 
         new Color { r = 0, g = 0, b = 1, a = 1 }, //com low
         new Color { r = 0, g = 0, b = 1, a = 1 }, //com med
+        new Color { r = 0, g = 0, b = 1, a = 1 }, //com high
 
         new Color { r = 1, g = 1, b = 0, a = 1 }, //ind low
+        new Color { r = 0, g = 0, b = 1, a = 1 }, //ind med
         new Color { r = 1, g = 1, b = 0, a = 1 }, //ind high
 
         new Color { r = 0, g = 1, b = 1, a = 1 }, //off low
+        new Color { r = 0, g = 1, b = 1, a = 1 }, //off mid
         new Color { r = 0, g = 1, b = 1, a = 1 }, //off high
 
-        new Color { r = 1, g = 1, b = 1, a = 1 }, //white test
-        new Color { r = 1, g = 1, b = 1, a = 1 },
-        new Color { r = 1, g = 1, b = 1, a = 1 }, //white test
-        new Color { r = 1, g = 1, b = 1, a = 1 }
-
+        new Color { r = 1, g = 1, b = 1, a = 1 }, //Farming
+ 
         };
 
         public static void SetNewColors() {
