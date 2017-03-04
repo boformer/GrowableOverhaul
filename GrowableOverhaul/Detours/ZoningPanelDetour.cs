@@ -24,12 +24,14 @@ namespace GrowableOverhaul
 
             ZoneTool zoneTool = ToolsModifierControl.SetTool<ZoneTool>();
             {
-                if (comp.name == "Industrial") ZoneToolDetour.ExtendedZone = ExtendedItemClass.Zone.Industrial;
+                if (comp.name == "CommercialHigh") ZoneToolDetour.ExtendedZone = ExtendedItemClass.Zone.Office;
+                else if (comp.name == "Industrial") ZoneToolDetour.ExtendedZone = ExtendedItemClass.Zone.OfficeMedium;
                 else if (comp.name == "Office") ZoneToolDetour.ExtendedZone = ExtendedItemClass.Zone.OfficeHigh;
+
                 else if (comp.name == "ResidentialLow") ZoneToolDetour.ExtendedZone = ExtendedItemClass.Zone.ResidentialLow;
                 else if (comp.name == "ResidentialHigh") ZoneToolDetour.ExtendedZone = ExtendedItemClass.Zone.ResidentialMedium;
                 else if (comp.name == "CommercialLow") ZoneToolDetour.ExtendedZone = ExtendedItemClass.Zone.ResidentialHigh;
-                else if (comp.name == "CommercialHigh") ZoneToolDetour.ExtendedZone = ExtendedItemClass.Zone.CommercialHigh;
+                
                 else ZoneToolDetour.ExtendedZone = ExtendedItemClass.Zone.ResidentialLow;
             }
 

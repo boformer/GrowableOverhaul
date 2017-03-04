@@ -46,6 +46,16 @@ namespace GrowableOverhaul
             m_buildingsRefreshed_field.SetValue(_this, true);
         }
 
+
+        public static int SetPrefabDensity(BuildingInfo prefab)
+        {
+
+            if (prefab.m_collisionHeight < 16) return 1; //low
+            else if (prefab.m_collisionHeight >= 16 & prefab.m_collisionHeight < 35) return 2; //medium
+            else if (prefab.m_collisionHeight > 35) return 3; //high
+            else return 1;
+        }
+
         //Grab prefab density from RICO mod. 
         private static int GetDensity(BuildingInfo prefab)
         {
@@ -96,7 +106,7 @@ namespace GrowableOverhaul
                         {
                             //For testing, lets make all assets level 1. 
                             int areaIndex = GetExtendedAreaIndex(prefab.m_class.m_service, prefab.m_class.m_subService, 
-                            ItemClass.Level.Level1, GetDensity(prefab), prefab.GetWidth(), prefab.GetLength(), prefab.m_zoningMode);
+                            ItemClass.Level.Level1, SetPrefabDensity(prefab), prefab.GetWidth(), prefab.GetLength(), prefab.m_zoningMode);
 
                             Debug.Log(prefab.name + " AreaIndex is: " + areaIndex);
 
@@ -109,7 +119,7 @@ namespace GrowableOverhaul
                     }
                 }
             }
-
+            /*
             int num = 19;
             for (int j = 0; j < num; j++)
             {
@@ -221,6 +231,7 @@ namespace GrowableOverhaul
                     }
                 }
             }
+            */
 
             //Save private values via reflection. 
             //SetBuildingsRefreshed(ref _this);
@@ -324,11 +335,11 @@ namespace GrowableOverhaul
 
 
             int zonemode = (int)zoningMode;
-            int wealthlevel = (int)level;
+            int wealthlevel = (int)level + 1;
 
             int index = serviceoffset; //start at service offset
 
-            index = index + (density * (leveloffset * wealthlevel)) ; // add density offset
+            index = index + density * (leveloffset * wealthlevel) ; // add density offset
             index = index + (leveloffset * wealthlevel); // add level offset
             index = index + (modeoffset * zonemode); // add mode offset
             index = index + width * widthcount; //width offset

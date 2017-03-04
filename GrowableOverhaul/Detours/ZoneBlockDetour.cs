@@ -1594,6 +1594,106 @@ namespace GrowableOverhaul
             return num7 * num7 + num8 * num8;
         }
 
+
+        private static int GetDemand(ZoneBlock _this, ExtendedItemClass.Zone zone, ZoneManager zoneManager) {
+
+            DistrictManager districtManager = Singleton<DistrictManager>.instance;
+            byte district = districtManager.GetDistrict(_this.m_position);
+
+            switch (zone)
+            {
+                case ExtendedItemClass.Zone.ResidentialLow:
+                    return zoneManager.m_actualResidentialDemand + districtManager.m_districts.m_buffer[(int)district].CalculateResidentialLowDemandOffset();
+                    
+                case ExtendedItemClass.Zone.ResidentialMedium:
+                    return zoneManager.m_actualResidentialDemand + districtManager.m_districts.m_buffer[(int)district].CalculateResidentialLowDemandOffset();
+                    
+                case ExtendedItemClass.Zone.ResidentialHigh:
+                    return zoneManager.m_actualResidentialDemand + districtManager.m_districts.m_buffer[(int)district].CalculateResidentialHighDemandOffset();       
+
+                case ExtendedItemClass.Zone.CommercialLow:
+                    return zoneManager.m_actualCommercialDemand + districtManager.m_districts.m_buffer[(int)district].CalculateCommercialLowDemandOffset();
+                    
+                case ExtendedItemClass.Zone.CommercialHigh:
+                    return zoneManager.m_actualCommercialDemand + districtManager.m_districts.m_buffer[(int)district].CalculateCommercialHighDemandOffset();
+                    
+
+                case ExtendedItemClass.Zone.Industrial:
+                    return zoneManager.m_actualWorkplaceDemand + districtManager.m_districts.m_buffer[(int)district].CalculateIndustrialDemandOffset();
+  
+                case ExtendedItemClass.Zone.Office:
+                    return zoneManager.m_actualWorkplaceDemand + districtManager.m_districts.m_buffer[(int)district].CalculateOfficeDemandOffset();
+
+                case ExtendedItemClass.Zone.OfficeMedium:
+                    return zoneManager.m_actualWorkplaceDemand + districtManager.m_districts.m_buffer[(int)district].CalculateOfficeDemandOffset();
+
+                case ExtendedItemClass.Zone.OfficeHigh:
+                    return zoneManager.m_actualWorkplaceDemand + districtManager.m_districts.m_buffer[(int)district].CalculateOfficeDemandOffset();
+
+                default:
+                    return 0;
+            }
+
+        }
+
+        private static void GetItemclass(ExtendedItemClass.Zone zone, ref int density, ref ItemClass.Service service, ref ItemClass.SubService subService) {
+
+            switch (zone)
+            {
+                case ExtendedItemClass.Zone.ResidentialLow:
+                    density = 1;
+                    service = ItemClass.Service.Residential;
+                    subService = ItemClass.SubService.ResidentialLow;
+                    break;
+                case ExtendedItemClass.Zone.ResidentialMedium:
+                    density = 2;
+                    service = ItemClass.Service.Residential;
+                    subService = ItemClass.SubService.ResidentialLow;
+                    break;
+                case ExtendedItemClass.Zone.ResidentialHigh:
+                    density = 3;
+                    service = ItemClass.Service.Residential;
+                    subService = ItemClass.SubService.ResidentialHigh;
+                    break;
+
+
+                case ExtendedItemClass.Zone.CommercialLow:
+                    density = 0;
+                    service = ItemClass.Service.Commercial;
+                    subService = ItemClass.SubService.CommercialLow;
+                    break;
+                case ExtendedItemClass.Zone.CommercialHigh:
+                    service = ItemClass.Service.Commercial;
+                    subService = ItemClass.SubService.CommercialHigh;
+                    break;
+                case ExtendedItemClass.Zone.Industrial:
+                    service = ItemClass.Service.Industrial;
+                    break;
+
+                case ExtendedItemClass.Zone.Office:
+                    density = 1;
+                    service = ItemClass.Service.Office;
+                    subService = ItemClass.SubService.None;
+                    break;
+                case ExtendedItemClass.Zone.OfficeHigh:
+                    density = 3;
+                    service = ItemClass.Service.Office;
+                    subService = ItemClass.SubService.None;
+                    break;
+                case ExtendedItemClass.Zone.OfficeMedium:
+                    density = 2;
+                    service = ItemClass.Service.Office;
+                    subService = ItemClass.SubService.None;
+                    break;
+
+
+                default:
+                    return;
+            }
+
+        }
+
+
         /// <summary>
         /// Spawns new growables on empty zones.
         /// </summary>
@@ -1602,6 +1702,20 @@ namespace GrowableOverhaul
         [RedirectMethod(true)]
         public static void SimulationStep(ref ZoneBlock _this, ushort blockID)
         {
+
+            /*
+            The redesign plan to is make this more modular. I want to split key parts into thier own methods with configurable random inputs. 
+
+            The algorithm should read the max area possible, and decide how to subdivide things based on zone type and density, with a small amount of randomness. 
+
+            For example, if the algorithm reads a 16x8 area of low density residential with road access on each side, it should split that into two 
+
+            4 deep rows and try to spawn 4x4 lots. 
+
+            If the algorithm reads the same size area in Office High, it should attempt to spawn 1 or two large 8 deep towers. 
+
+            */
+
             _this.RefreshZoning(blockID);
 
             ZoneManager zoneManager = Singleton<ZoneManager>.instance;
@@ -1618,8 +1732,6 @@ namespace GrowableOverhaul
 
             // select a random zoned, unoccupied row and get its zone type
             // this will be our seed row
-
-           
             int seedRow = 0;
             ExtendedItemClass.Zone zone = ExtendedItemClass.Zone.Unzoned;
             for (int index = 0; index < 4 && zone == ExtendedItemClass.Zone.Unzoned; ++index)
@@ -1629,38 +1741,14 @@ namespace GrowableOverhaul
                 if ((validFreeCellMask & 1UL << (seedRow << 3)) != 0UL)
                 {
                     zone = GetZoneDeep(ref _this, blockID, 0, seedRow);
-                    Debug.Log("Detected Zone is: " + zone);
+                    //Debug.Log("Detected Zone is: " + zone);
 
                 }
             }
 
-            // get the demand for the given zone type in the district
-            DistrictManager districtManager = Singleton<DistrictManager>.instance;
-            byte district = districtManager.GetDistrict(_this.m_position);
-            int demand;
-            switch (zone)
-            {
-                case ExtendedItemClass.Zone.ResidentialLow:
-                    demand = zoneManager.m_actualResidentialDemand + districtManager.m_districts.m_buffer[(int)district].CalculateResidentialLowDemandOffset();
-                    break;
-                case ExtendedItemClass.Zone.ResidentialHigh:
-                    demand = zoneManager.m_actualResidentialDemand + districtManager.m_districts.m_buffer[(int)district].CalculateResidentialHighDemandOffset();
-                    break;
-                case ExtendedItemClass.Zone.CommercialLow:
-                    demand = zoneManager.m_actualCommercialDemand + districtManager.m_districts.m_buffer[(int)district].CalculateCommercialLowDemandOffset();
-                    break;
-                case ExtendedItemClass.Zone.CommercialHigh:
-                    demand = zoneManager.m_actualCommercialDemand + districtManager.m_districts.m_buffer[(int)district].CalculateCommercialHighDemandOffset();
-                    break;
-                case ExtendedItemClass.Zone.Industrial:
-                    demand = zoneManager.m_actualWorkplaceDemand + districtManager.m_districts.m_buffer[(int)district].CalculateIndustrialDemandOffset();
-                    break;
-                case ExtendedItemClass.Zone.Office:
-                    demand = zoneManager.m_actualWorkplaceDemand + districtManager.m_districts.m_buffer[(int)district].CalculateOfficeDemandOffset();
-                    break;
-                default:
-                    return;
-            }
+            //Get the demand for the given zone type in the district
+            int demand = GetDemand(_this, zone, zoneManager);
+            
 
             // origin of the zone block
             Vector2 positionXZ = VectorUtils.XZ(_this.m_position);
@@ -1675,7 +1763,6 @@ namespace GrowableOverhaul
 
             int[] RowBuffer = zoneManager.m_tmpXBuffer; // TODO maybe use a bigger buffer?
 
-
             if (RowBuffer.Length == 13)
             {
                 RowBuffer = new int[17];
@@ -1684,18 +1771,6 @@ namespace GrowableOverhaul
             for (int index = 0; index < 17; ++index) RowBuffer[index] = 0; // was 13
 
             // put the surrounding area of the seed cell into a quad
-            // TODO maybe check a bigger area?
-
-            /* OLD
-            Quad2 seedPointAreaQuad = new Quad2
-            {
-                a = positionXZ - 4f * columnDirection + ((float)seedRow - 10f) * rowDirection,
-                b = positionXZ + 3f * columnDirection + ((float)seedRow - 10f) * rowDirection,
-                c = positionXZ + 3f * columnDirection + ((float)seedRow + 2f) * rowDirection,
-                d = positionXZ - 4f * columnDirection + ((float)seedRow + 2f) * rowDirection
-            };
-            */
-
             Quad2 seedPointAreaQuad = new Quad2
             {
                 a = positionXZ - 8f * columnDirection + ((float)seedRow - 20f) * rowDirection,
@@ -1810,11 +1885,6 @@ namespace GrowableOverhaul
 
                 }
                
-
-                //Debug.Log("Shortened ColumnCount = " + columnCount);
-
-                // TODO add support for larger lots! (8,9,10,11,12,13,14,15)
-
                 if (cornerRoadAccess)
                 {
                     // set corner flag
@@ -1825,6 +1895,8 @@ namespace GrowableOverhaul
                 // store result in buffer
                 RowBuffer[row] = columnCount;
             }
+
+
 
             // use bitmask to read depth at seed row
             // 0000 0000 0000 0000 1111 1111 1111 1111 
@@ -1858,6 +1930,7 @@ namespace GrowableOverhaul
                 }
                 return;
             }
+
             // let's spawn a building!
             // STEP 1: this calculates a left and right row range for the building to spawn
             else
@@ -2204,7 +2277,7 @@ namespace GrowableOverhaul
 
                 //int calculatedDepth = 16;
 
-                int calculatedDepth = rnd.Next(4, 16);
+                int calculatedDepth = rnd.Next(4, 16); //randomize depth for anything over 4 deep. 
 
                 int calculatedWidth = RightRowRange - LeftRowRange + 1;
 
@@ -2283,51 +2356,20 @@ namespace GrowableOverhaul
                 }
 
                 // STEP 5: Assemble ItemClass information
+
                 int density = 0;
                 ItemClass.SubService subService = ItemClass.SubService.None;
                 ItemClass.Level level = ItemClass.Level.Level1;
-                ItemClass.Service service;
-                switch (zone)
-                {
-                    case ExtendedItemClass.Zone.ResidentialLow:
-                        density = 0;
-                        service = ItemClass.Service.Residential;
-                        subService = ItemClass.SubService.ResidentialLow;
-                        break;
-                    case ExtendedItemClass.Zone.ResidentialMedium:
-                        density = 1;
-                        service = ItemClass.Service.Residential;
-                        subService = ItemClass.SubService.ResidentialLow;
-                        break;
-                    case ExtendedItemClass.Zone.ResidentialHigh:
-                        density = 2;
-                        service = ItemClass.Service.Residential;
-                        subService = ItemClass.SubService.ResidentialHigh;
-                        break;
-                    case ExtendedItemClass.Zone.CommercialLow:
-                        density = 0;
-                        service = ItemClass.Service.Commercial;
-                        subService = ItemClass.SubService.CommercialLow;
-                        break;
-                    case ExtendedItemClass.Zone.CommercialHigh:
-                        service = ItemClass.Service.Commercial;
-                        subService = ItemClass.SubService.CommercialHigh;
-                        break;
-                    case ExtendedItemClass.Zone.Industrial:
-                        service = ItemClass.Service.Industrial;
-                        break;
-                    case ExtendedItemClass.Zone.Office:
-                        service = ItemClass.Service.Office;
-                        subService = ItemClass.SubService.None;
-                        break;
-                    default:
-                        return;
-                }
+                ItemClass.Service service = ItemClass.Service.Residential;
 
-                // STEP 6: Find a prefab using either calculated or randomized size, spawn position and zoning mode
-                // The fallback if no corner was found is always straight mode
+                GetItemclass(zone, ref density, ref service, ref subService);
+        
 
-                BuildingInfo info = (BuildingInfo)null;
+
+            // STEP 6: Find a prefab using either calculated or randomized size, spawn position and zoning mode
+            // The fallback if no corner was found is always straight mode
+
+            BuildingInfo info = (BuildingInfo)null;
                 Vector3 buildingSpawnPos = Vector3.zero;
 
                 int finalSpawnRowDouble = 0; // this is the doubled relative spawn position
@@ -2416,6 +2458,9 @@ namespace GrowableOverhaul
                             }
 
                             // get district style
+                            DistrictManager districtManager = Singleton<DistrictManager>.instance;
+                            byte district = districtManager.GetDistrict(_this.m_position);
+
                             byte buildingDistrict = districtManager.GetDistrict(buildingSpawnPos);
                             ushort style = districtManager.m_districts.m_buffer[(int)buildingDistrict].m_Style;
 
